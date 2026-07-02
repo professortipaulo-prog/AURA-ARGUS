@@ -82,6 +82,14 @@ implementada.
 
 ## O que existe hoje no projeto
 
+- **Chat conectado à IA real** (`app/dashboard/chat`, `lib/ai/*`,
+  `app/api/ai/chat`, `app/api/ai/status`) — o botão "Enviar" chama de
+  verdade a Anthropic ou o Gemini (dependendo da persona ativa),
+  através de uma rota de backend segura. Se a chave do provedor não
+  estiver configurada, aparece um aviso amarelo explicando isso — nada
+  é simulado quando a IA de verdade não responde. `GET /api/ai/status`
+  mostra quais provedores estão configurados, sem nunca expor as
+  chaves.
 - **Núcleo de Inteligência** (`modules/ai-router`, `conversation`,
   `context-builder`, `prompt-builder`, `memory`, `personality`,
   `workflow`) — estrutura completa, sem chamadas reais a Gemini/Anthropic.
@@ -121,13 +129,13 @@ implementada.
 
 ## O que NÃO foi implementado (fora de escopo)
 
-- IA real (nenhuma chamada a Gemini ou Anthropic).
 - FaceID real (`modules/faceid` é apenas placeholder).
 - Voz real (`modules/voice` é apenas placeholder; Web Speech API não conectada).
 - Integrações reais (Google Drive, Gmail, OneDrive, Outlook, Teams, GitHub, NotebookLM).
 - Envio automático de mensagens (e-mail, WhatsApp).
-- Memória persistente real (repositórios de `modules/memory` em memória, não em Supabase).
+- Memória persistente real e histórico de conversa entre sessões (o chat conectado à IA não salva nada ainda).
 - Autenticação real (login/registro são apenas telas visuais).
+- Lip-sync real do avatar (a foto anima ao redor, mas a boca não se move de verdade — ver `docs/brand/avatares-animados.md`).
 
 ## Variáveis de ambiente (`.env.example`)
 
@@ -135,8 +143,10 @@ implementada.
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Cliente Supabase (frontend e backend) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Uso exclusivo de backend (`lib/supabase/admin.ts`) |
-| `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` | Uso exclusivo de backend — não conectadas ainda |
-| `AI_ROUTER_DEFAULT_PROVIDER` / `AI_ROUTER_FALLBACK_PROVIDER` | Provedor padrão/fallback do AI Router estrutural |
+| `GEMINI_API_KEY` / `AI_ROUTER_DEFAULT_PROVIDER` / `AI_ROUTER_FALLBACK_PROVIDER` | Usadas pelo AI Router **estrutural** (`modules/ai-router`) — política de roteamento, ainda não conectada |
+| `ANTHROPIC_API_KEY` | **Usada de verdade** por `lib/ai/providers/anthropic.ts` (`/api/ai/chat`) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | **Usada de verdade** por `lib/ai/providers/gemini.ts` (`/api/ai/chat`) |
+| `DEFAULT_AI_PROVIDER` / `DEFAULT_AI_MODEL` / `GEMINI_DEFAULT_MODEL` | Configuração do roteador real (`lib/ai/ai-router.ts`) |
 | `NEXT_PUBLIC_APP_ENV` | Ambiente da aplicação (`development`/`production`) |
 
 Nenhuma dessas chaves é lida em componentes de cliente — `lib/env.ts`
@@ -159,9 +169,12 @@ separa explicitamente `publicEnv` (frontend) de `serverEnv` (backend).
   real conectada (`modules/voice`) para saber quando o usuário está
   falando, e (2) a resposta em áudio/texto da IA real para saber quando
   e "o que" o avatar deveria estar "falando" (visemas).
-- **IA real:** implementar `IAIProviderAdapter` para Gemini e Anthropic
-  em `modules/ai-router`, sem alterar a política de roteamento já
-  definida.
+- **IA real:** ✅ conectada via `lib/ai/*` e `/api/ai/chat` (Anthropic
+  e Gemini). Pendente: unificar com a política estrutural de
+  `modules/ai-router` (fallback automático, custo, cache) em uma sprint
+  futura — hoje são duas camadas separadas de propósito.
+- **Histórico de conversa:** o chat conectado à IA não salva mensagens
+  entre sessões; usar `modules/conversation` + Supabase para isso.
 - **Persistência real:** substituir os repositórios em memória
   (`modules/memory`, `conversation`, `personality`, `workflow`) por
   Supabase, usando o schema em `database/ARQ-DB-001_aura_argus_database.sql`

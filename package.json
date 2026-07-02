@@ -1,6 +1,6 @@
 {
   "name": "aura-argus",
-  "version": "0.4.1",
+  "version": "0.7.0",
   "private": true,
   "description": "AURA / ARGUS - Base GitHub pronta para Supabase, Vercel e deploy inicial",
   "scripts": {
@@ -16,7 +16,9 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "@supabase/supabase-js": "2.45.4",
-    "@supabase/ssr": "0.5.1"
+    "@supabase/ssr": "0.5.1",
+    "@anthropic-ai/sdk": "0.27.3",
+    "@google/generative-ai": "0.21.0"
   },
   "devDependencies": {
     "typescript": "5.5.4",
