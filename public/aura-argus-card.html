@@ -1,0 +1,54 @@
+<!--
+  public/aura-argus-card.html
+  Card "AURA / ARGUS" em HTML puro (sem Next.js, sem build, sem
+  dependências). Pensado para ser copiado e colado dentro de QUALQUER
+  site — WordPress, Wix, HTML puro, etc. — como um bloco/card entre
+  outros serviços da PSF Editora e Consultoria.
+
+  Como usar:
+  1. Abra este arquivo direto no navegador para ver como fica.
+  2. Copie o conteúdo de dentro de <!-- CARD START --> até <!-- CARD END -->
+     e cole no HTML da sua página, no lugar onde quer que o card apareça.
+  3. Troque o link do botão (href="#") pela URL real do AURA/ARGUS
+     quando o deploy estiver pronto (ex: https://app.psfeditoraeconsultoria.com.br).
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>AURA / ARGUS — Card de apresentação</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="margin:0;padding:40px;background:#0b0e17;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;justify-content:center;">
+
+<!-- CARD START -->
+<div style="max-width:380px;width:100%;background:linear-gradient(180deg, rgba(15,23,42,.9), rgba(15,23,42,.7));border:1px solid rgba(148,163,184,.18);border-radius:24px;padding:32px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.35);">
+  <div style="width:56px;height:56px;margin:0 auto 16px;">
+    <svg width="56" height="56" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#7C3AED" />
+          <stop offset="100%" stop-color="#22D3EE" />
+        </linearGradient>
+      </defs>
+      <path d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z" stroke="url(#g)" stroke-width="2.5" fill="rgba(124,58,237,0.08)" />
+      <circle cx="20" cy="20" r="7.5" stroke="url(#g)" stroke-width="2.2" fill="none" />
+      <circle cx="20" cy="20" r="2.6" fill="url(#g)" />
+    </svg>
+  </div>
+  <h3 style="margin:0;font-size:26px;font-weight:900;color:#ffffff;">AURA / ARGUS</h3>
+  <p style="margin:8px 0 0;font-size:14px;font-weight:600;background:linear-gradient(90deg,#7C3AED,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent;">
+    Solução definitiva em assistentes de IA pessoal
+  </p>
+  <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#94a3b8;">
+    Dois assistentes, um núcleo: AURA para produtividade e escrita,
+    ARGUS para tecnologia e automação.
+  </p>
+  <a href="#" style="display:inline-flex;align-items:center;justify-content:center;margin-top:24px;padding:12px 24px;border-radius:16px;background:#6366F1;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+    Conhecer AURA / ARGUS
+  </a>
+</div>
+<!-- CARD END -->
+
+</body>
+</html>
