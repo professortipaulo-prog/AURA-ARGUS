@@ -1,143 +1,62 @@
-import { AvatarOrb } from '@/components/ui/avatar-orb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { MetricRow } from '@/components/ui/metric-row';
-import { SectionTitle } from '@/components/ui/section-title';
 import { StatCard } from '@/components/ui/stat-card';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LogoWithWordmark } from '@/components/brand/logo-mark';
 
-const stack = ['Supabase', 'Vercel', 'GitHub', 'Claude', 'Gemini', 'Drive', 'OneDrive', 'Gmail', 'NotebookLM'];
-const pillars = [
-  ['A.U.R.A.', 'Assistente Universal de Raciocínio e Ação', 'Presença contextual, empática e operacional. Escuta, compreende, organiza e age.'],
-  ['A.R.G.U.S.', 'Agente de Raciocínio, Gestão, Unificação e Supervisão', 'Visão estratégica, monitoramento, segurança, análise e proteção do sistema.']
-];
-const modules = [
-  ['AI Router', 'Seleção entre Claude, Gemini e futuros provedores.'],
-  ['Memory Manager', 'Memória temporária, de projeto, vetorial e permanente.'],
-  ['Action Manager', 'Execução de ações: documentos, e-mail, Drive, OneDrive e automações.'],
-  ['Voice Always-on', 'Microfone em escuta ativa, hotword e conversação natural.'],
-  ['Document Engine', 'Geração e conversão de PDF, Word, Excel, PowerPoint e imagens.'],
-  ['Argus Watch', 'Supervisão de logs, custos, integrações, erros e riscos operacionais.']
-];
+const modules = ['AI Router', 'Memory Manager', 'Action Manager', 'Document Engine', 'Voice Always-on', 'FaceID', 'Google Drive', 'OneDrive'];
 
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <div className="hud-grid" />
-      <div className="scanline" />
-
-      <nav className="relative z-10 mx-auto mt-6 flex max-w-7xl items-center justify-between rounded-[2rem] border border-white/10 bg-slate-950/55 px-5 py-4 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:px-7">
-        <div className="flex items-center gap-3">
-          <div className="brand-mark">A</div>
-          <div>
-            <p className="font-black tracking-[.16em] text-white">AURA / ARGUS</p>
-            <p className="text-xs text-slate-500">Professional AI Operating System</p>
-          </div>
-        </div>
-        <div className="hidden items-center gap-3 md:flex">
-          <a href="#mitologia" className="text-sm font-semibold text-slate-400 transition hover:text-white">Mitologia</a>
-          <a href="#modulos" className="text-sm font-semibold text-slate-400 transition hover:text-white">Módulos</a>
+    <main className="min-h-screen px-6 py-6 lg:px-12">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-3xl border border-white/10 bg-white/[.04] px-5 py-4 backdrop-blur-xl">
+        <LogoWithWordmark subtitle="Assistentes Inteligentes" />
+        <div className="hidden gap-2 md:flex">
+          <ThemeToggle />
           <Button href="/login" variant="ghost">Entrar</Button>
           <Button href="/dashboard">Abrir painel</Button>
         </div>
       </nav>
 
-      <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[1fr_.95fr] lg:px-8 lg:py-24">
+      <section className="mx-auto grid max-w-7xl items-center gap-10 py-20 lg:grid-cols-[1.05fr_.95fr]">
         <div>
-          <Badge>AURA compreende e age. ARGUS observa e protege.</Badge>
-          <h1 className="mt-7 max-w-5xl text-balance text-5xl font-black tracking-tight text-white md:text-7xl lg:text-8xl">
-            Um assistente vivo para sua rotina profissional.
+          <Badge>Solução definitiva em assistentes de IA pessoal</Badge>
+          <h1 className="mt-6 max-w-4xl text-balance text-5xl font-black tracking-tight text-white md:text-7xl">
+            AURA e ARGUS — seu sistema operacional de IA para trabalho, vida profissional e documentos.
           </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-9 text-slate-400">
-            AURA/ARGUS será um núcleo inteligente com voz, memória, documentos, agentes, ações e supervisão contínua. A interface agora assume a identidade visual do produto: escura, cinematográfica, responsiva e preparada para IA real.
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
+            Dois assistentes de IA pessoal, um núcleo só: AURA para produtividade, escrita e projetos; ARGUS para tecnologia, dados e automação. Um projeto PSF Editora e Consultoria.
           </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button href="/dashboard" className="px-7">Entrar no cockpit</Button>
-            <Button href="/register" variant="secondary" className="px-7">Criar perfil</Button>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button href="/register">Criar acesso</Button>
+            <Button href="/dashboard" variant="secondary">Ver dashboard</Button>
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
-            <StatCard label="Infra" value="Live" detail="GitHub + Vercel" />
-            <StatCard label="Banco" value="RLS" detail="Supabase pronto" />
-            <StatCard label="UI" value="HUD" detail="Interface gráfica" />
+            <StatCard label="Infra" value="OK" detail="Supabase + Vercel" />
+            <StatCard label="Banco" value="DB" detail="Schemas e RLS" />
+            <StatCard label="Deploy" value="Live" detail="GitHub conectado" />
           </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute -left-10 top-10 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl" />
-          <div className="absolute -right-10 bottom-10 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl" />
-          <Card className="relative overflow-hidden p-5 lg:p-7">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[.3em] text-slate-500">Dual Core</p>
-                <h2 className="mt-2 text-2xl font-black text-white">AURA / ARGUS</h2>
-              </div>
-              <span className="pulse-dot">online</span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <AvatarOrb name="AURA" role="Raciocínio e Ação" variant="aura" />
-              <AvatarOrb name="ARGUS" role="Supervisão e Defesa" variant="argus" />
-            </div>
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/[.04] p-5">
-              <MetricRow label="Estado do sistema" value="Interface gráfica ativa" />
-              <MetricRow label="Modo de operação" value="Assistente profissional" />
-              <MetricRow label="Próxima camada" value="Autenticação + IA real" />
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      <section id="mitologia" className="relative z-10 mx-auto max-w-7xl px-6 py-16 lg:px-8">
-        <SectionTitle
-          eyebrow="Identidade"
-          title="A tecnologia nasce de uma narrativa forte."
-          description="Os nomes AURA e ARGUS não são apenas marcas. Eles carregam função, personalidade e papéis complementares dentro do sistema."
-        />
-        <div className="mt-12 grid gap-5 lg:grid-cols-2">
-          {pillars.map(([title, acronym, description]) => (
-            <Card key={title} className="min-h-64">
-              <p className="text-sm uppercase tracking-[.3em] text-cyan-200/80">{title}</p>
-              <h3 className="mt-4 text-3xl font-black text-white">{acronym}</h3>
-              <p className="mt-5 text-base leading-8 text-slate-400">{description}</p>
-            </Card>
-          ))}
-        </div>
-        <div className="mt-5 rounded-[2rem] border border-white/10 bg-white/[.035] p-6 text-center shadow-2xl shadow-black/20 backdrop-blur-xl">
-          <p className="text-xl font-bold text-white">Enquanto AURA olha para você, ARGUS olha pelo sistema.</p>
-          <p className="mt-3 text-sm leading-7 text-slate-400">AURA remete à brisa e à presença sutil. ARGUS remete a Argos Panoptes, o guardião de cem olhos. Um conduz a interação; o outro supervisiona a operação.</p>
-        </div>
-      </section>
-
-      <section id="modulos" className="relative z-10 mx-auto max-w-7xl px-6 py-16 lg:px-8">
-        <SectionTitle
-          eyebrow="Arquitetura visual"
-          title="Um cockpit para conversar, decidir e executar."
-          description="A interface foi estruturada para receber módulos reais sem refazer o design: chat, projetos, documentos, memória, agentes, configurações e administração."
-        />
-        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {modules.map(([title, description], index) => (
-            <div key={title} className="module-card">
-              <div className="flex items-start justify-between gap-4">
-                <span className="module-index">0{index + 1}</span>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-500">preparado</span>
-              </div>
-              <h3 className="mt-6 text-xl font-black text-white">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-400">{description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 pt-12 lg:px-8">
-        <Card className="overflow-hidden">
-          <div className="grid gap-8 lg:grid-cols-[.9fr_1.1fr]">
+        <Card className="aura-glow overflow-hidden">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[.3em] text-cyan-200/80">Integrações previstas</p>
-              <h2 className="mt-4 text-3xl font-black text-white">Pronto para conectar o mundo profissional.</h2>
-              <p className="mt-5 text-sm leading-7 text-slate-400">A base visual já considera integrações com provedores de IA, documentos, nuvem, comunicação e automações. As próximas etapas ligam a interface ao backend real.</p>
+              <p className="text-sm font-semibold text-white">ARGUS observando</p>
+              <p className="text-xs text-slate-500">Rotas, memoria e acoes</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {stack.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-center text-sm font-semibold text-slate-300">{item}</div>)}
-            </div>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">online</span>
+          </div>
+          <div className="space-y-3">
+            {modules.map((module, index) => (
+              <div key={module} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.04] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/15 text-sm text-indigo-200">{index + 1}</span>
+                  <span className="text-sm font-medium text-slate-200">{module}</span>
+                </div>
+                <span className="text-xs text-slate-500">preparado</span>
+              </div>
+            ))}
           </div>
         </Card>
       </section>

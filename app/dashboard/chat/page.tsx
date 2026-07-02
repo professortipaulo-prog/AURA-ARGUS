@@ -1,79 +1,144 @@
 'use client';
 
+/**
+ * app/dashboard/chat/page.tsx
+ * Chat conectado à IA REAL via /api/ai/chat (lib/ai/ai-router.ts).
+ * Cada persona usa um provedor diferente por padrão — AURA → Anthropic
+ * (redação/raciocínio), ARGUS → Gemini (respostas técnicas rápidas) —
+ * mas isso é só uma escolha de demonstração; qualquer um funciona com
+ * qualquer provedor.
+ *
+ * Se a chave do provedor não estiver configurada na Vercel
+ * (ANTHROPIC_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY), a rota retorna um
+ * erro amigável (HTTP 503) e é isso que aparece na tela — nada é
+ * simulado ou inventado quando a IA não responde de verdade.
+ */
 import { useState } from 'react';
 import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/input';
-import { MetricRow } from '@/components/ui/metric-row';
-import { StatusPill } from '@/components/ui/status-pill';
+import { Button } from '@/components/ui/button';
 import { AvatarPanel, type AvatarState } from '@/components/avatar-panel';
 
-const suggestions = ['Resumir documentos', 'Criar apresentação', 'Analisar e-mails', 'Organizar agenda'];
+type ChatMessage = { role: 'user' | 'assistant' | 'error'; content: string };
+
+const PERSONA_PROVIDER = {
+  aura: 'anthropic',
+  argus: 'gemini'
+} as const;
 
 export default function ChatPage() {
+  const [persona, setPersona] = useState<'aura' | 'argus'>('aura');
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', content: 'Olá, Paulo. Sou a AURA/ARGUS. Digite algo e clique em Enviar — já estou conectada à rota real de IA (/api/ai/chat).' }
+  ]);
+  const [isSending, setIsSending] = useState(false);
 
-  function handleSendPlaceholder() {
-    if (isSimulating) return;
-    setIsSimulating(true);
-    setAvatarState('listening');
-    const t1 = setTimeout(() => setAvatarState('thinking'), 1200);
-    const t2 = setTimeout(() => setAvatarState('speaking'), 2600);
-    const t3 = setTimeout(() => {
+  async function handleSend() {
+    const text = input.trim();
+    if (!text || isSending) return;
+
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setInput('');
+    setIsSending(true);
+    setAvatarState('thinking');
+
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, provider: PERSONA_PROVIDER[persona] })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessages((prev) => [...prev, { role: 'error', content: data.error ?? 'Erro desconhecido ao chamar a IA.' }]);
+        setAvatarState('idle');
+        return;
+      }
+
+      setAvatarState('speaking');
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+      setTimeout(() => setAvatarState('idle'), 1800);
+    } catch {
+      setMessages((prev) => [...prev, { role: 'error', content: 'Não foi possível contatar /api/ai/chat. Verifique sua conexão.' }]);
       setAvatarState('idle');
-      setIsSimulating(false);
-    }, 4600);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
     <>
-      <Header title="Chat IA" subtitle="Interface preparada para AURA e ARGUS com voz, contexto e memória." />
-      <section className="grid gap-6 p-5 lg:grid-cols-[1fr_380px] lg:p-8">
-        <Card className="min-h-[650px] overflow-hidden">
-          <div className="mb-6 flex items-center justify-between gap-4 border-b border-white/10 pb-5">
-            <div>
-              <p className="text-xs uppercase tracking-[.3em] text-cyan-200/70">Conversa</p>
-              <h2 className="mt-2 text-2xl font-black text-white">AURA ativa</h2>
-            </div>
-            <StatusPill tone="amber">IA pendente</StatusPill>
+      <Header title="Chat IA" subtitle="Conectado à IA real via /api/ai/chat." />
+      <section className="grid gap-6 p-5 lg:grid-cols-[1fr_340px] lg:p-8">
+        <Card className="flex min-h-[620px] flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto">
+            {messages.map((msg, i) => {
+              if (msg.role === 'error') {
+                return (
+                  <div key={i} className="max-w-xl rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
+                    ⚠️ {msg.content}
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={i}
+                  className={
+                    msg.role === 'user'
+                      ? 'ml-auto max-w-xl rounded-3xl bg-indigo-500 p-4 text-sm text-white'
+                      : 'max-w-xl rounded-3xl bg-white/[.06] p-4 text-sm text-slate-300'
+                  }
+                >
+                  {msg.content}
+                </div>
+              );
+            })}
           </div>
-          <div className="space-y-4">
-            <div className="max-w-2xl rounded-[1.6rem] border border-cyan-300/15 bg-cyan-300/10 p-5 text-sm leading-7 text-slate-200">
-              Olá, Paulo. A interface gráfica foi implementada. O próximo passo real é conectar autenticação, Supabase e provedores de IA.
-            </div>
-            <div className="ml-auto max-w-2xl rounded-[1.6rem] bg-indigo-500 p-5 text-sm leading-7 text-white shadow-lg shadow-indigo-500/20">
-              Quero que você funcione como meu assistente profissional com memória, documentos, voz e ações.
-            </div>
-          </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-4">
-            {suggestions.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[.035] p-3 text-center text-xs font-semibold text-slate-400">{item}</div>)}
-          </div>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Textarea rows={3} placeholder="Digite sua solicitação para AURA..." disabled={isSimulating} />
-            <Button onClick={handleSendPlaceholder} disabled={isSimulating} className="sm:w-32">
-              {isSimulating ? 'Simulando...' : 'Enviar'}
+          <div className="mt-8 flex gap-3">
+            <Textarea
+              rows={3}
+              placeholder="Digite sua solicitação..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isSending}
+            />
+            <Button onClick={handleSend} disabled={isSending || !input.trim()}>
+              {isSending ? 'Enviando...' : 'Enviar'}
             </Button>
           </div>
-          <p className="mt-3 text-xs text-slate-500">Nesta etapa o botão simula estados do avatar. A IA real entra na próxima camada.</p>
+          <p className="mt-3 text-xs text-slate-500">
+            Chama {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic' : 'Gemini'} de verdade via /api/ai/chat. Se a chave não estiver configurada na Vercel, você verá um aviso amarelo em vez de uma resposta.
+          </p>
         </Card>
         <div className="space-y-6">
-          <AvatarPanel persona="aura" state={avatarState} />
+          <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/[.03] p-1">
+            <button
+              type="button"
+              onClick={() => setPersona('aura')}
+              className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${persona === 'aura' ? 'bg-brand-violet text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              AURA
+            </button>
+            <button
+              type="button"
+              onClick={() => setPersona('argus')}
+              className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${persona === 'argus' ? 'bg-brand-cyan text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
+              ARGUS
+            </button>
+          </div>
+          <AvatarPanel persona={persona} state={avatarState} />
           <Card>
-            <h2 className="text-xl font-black text-white">Contexto ativo</h2>
-            <div className="mt-5">
-              <MetricRow label="Projeto" value="AURA/ARGUS" />
-              <MetricRow label="Modo" value="Profissional" />
-              <MetricRow label="Memória" value="Preparada" />
-              <MetricRow label="Roteamento" value="Claude/Gemini" />
-              <MetricRow label="Voz" value="Planejada" />
+            <h2 className="font-bold text-white">Contexto ativo</h2>
+            <div className="mt-4 space-y-3 text-sm text-slate-400">
+              <p>Projeto: AURA/ARGUS</p>
+              <p>Persona: {persona === 'aura' ? 'AURA' : 'ARGUS'}</p>
+              <p>Provedor: {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic Claude' : 'Google Gemini'}</p>
+              <p>Memória: ainda não persistente (fora de escopo)</p>
             </div>
           </Card>
         </div>
