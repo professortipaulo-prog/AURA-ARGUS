@@ -1,0 +1,12 @@
+flowchart TD
+    U[Usuário] --> CM[Conversation Manager]
+    CM --> CB[Context Builder]
+    CB --> UP[User Profile / Knowledge Hub]
+    CB --> MR[Memory Retrieval]
+    CB --> PB[Prompt Builder]
+    PE[Personality Engine] --> PB
+    PB --> AIR[AI Router]
+    AIR -->|not_implemented Sprint 004| G[Gemini]
+    AIR -->|not_implemented Sprint 004| A[Anthropic]
+    WE[Workflow Engine] -.futuro: Action Manager.-> AIR
+    CM --> WE
