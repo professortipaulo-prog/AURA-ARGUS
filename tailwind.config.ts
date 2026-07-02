@@ -17,6 +17,12 @@ const config: Config = {
         argus: {
           DEFAULT: '#1B1F23',
           accent: '#2ECC71'
+        },
+        /** Gradiente compartilhado da marca (logo, títulos) — referência: material de branding AURA/ARGUS. */
+        brand: {
+          violet: '#7C3AED',
+          indigo: '#6366F1',
+          cyan: '#22D3EE'
         }
       }
     }
