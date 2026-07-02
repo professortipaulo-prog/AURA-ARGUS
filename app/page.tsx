@@ -2,6 +2,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LogoWithWordmark } from '@/components/brand/logo-mark';
 
 const modules = ['AI Router', 'Memory Manager', 'Action Manager', 'Document Engine', 'Voice Always-on', 'FaceID', 'Google Drive', 'OneDrive'];
 
@@ -9,14 +11,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen px-6 py-6 lg:px-12">
       <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-3xl border border-white/10 bg-white/[.04] px-5 py-4 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 font-black">A</div>
-          <div>
-            <p className="font-bold">AURA / ARGUS</p>
-            <p className="text-xs text-slate-500">Assistente profissional inteligente</p>
-          </div>
-        </div>
+        <LogoWithWordmark subtitle="Assistentes Inteligentes" />
         <div className="hidden gap-2 md:flex">
+          <ThemeToggle />
           <Button href="/login" variant="ghost">Entrar</Button>
           <Button href="/dashboard">Abrir painel</Button>
         </div>

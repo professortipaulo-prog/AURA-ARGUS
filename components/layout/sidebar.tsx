@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LogoWithWordmark } from '@/components/brand/logo-mark';
 
 const items: Array<[string, string, string]> = [
   ['Visao geral', '/dashboard', '⌘'],
@@ -14,12 +15,8 @@ const items: Array<[string, string, string]> = [
 export function Sidebar() {
   return (
     <aside className="hidden min-h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/50 p-5 lg:block">
-      <Link href="/" className="mb-8 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 font-black text-white">A</div>
-        <div>
-          <p className="font-bold text-white">AURA / ARGUS</p>
-          <p className="text-xs text-slate-500">Professional AI OS</p>
-        </div>
+      <Link href="/" className="mb-8 block">
+        <LogoWithWordmark subtitle="Professional AI OS" />
       </Link>
       <nav className="space-y-2">
         {items.map(([label, href, icon]) => (
