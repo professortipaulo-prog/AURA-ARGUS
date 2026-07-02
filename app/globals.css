@@ -3,16 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --background: 255 255 255;
-  --foreground: 17 24 39;
+  --bg: 7 10 20;
+  --panel: 12 18 32;
+  --panel-soft: 18 25 44;
+  --line: 40 52 78;
+  --text: 238 244 255;
+  --muted: 143 156 180;
+  --brand: 99 102 241;
+  --cyan: 34 211 238;
 }
 
-.dark {
-  --background: 15 17 21;
-  --foreground: 237 240 245;
-}
-
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(99,102,241,.25), transparent 34rem),
+    radial-gradient(circle at top right, rgba(34,211,238,.16), transparent 30rem),
+    rgb(var(--bg));
+  color: rgb(var(--text));
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+
+a { color: inherit; text-decoration: none; }
+
+.aura-card {
+  border: 1px solid rgba(148, 163, 184, .16);
+  background: linear-gradient(180deg, rgba(15,23,42,.86), rgba(15,23,42,.58));
+  box-shadow: 0 24px 80px rgba(0,0,0,.28);
+  backdrop-filter: blur(18px);
+}
+
+.aura-glow {
+  position: relative;
+}
+.aura-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(99,102,241,.7), rgba(34,211,238,.22), transparent 62%);
+  opacity: .65;
+}
+
+.text-balance { text-wrap: balance; }

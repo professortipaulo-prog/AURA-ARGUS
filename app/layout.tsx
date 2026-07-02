@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AURA / ARGUS',
-  description: 'Assistente profissional inteligente — nucleo de inteligencia (Sprint 004)'
+  description: 'Assistente profissional inteligente para vida, trabalho, documentos, memoria e automacoes.'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
