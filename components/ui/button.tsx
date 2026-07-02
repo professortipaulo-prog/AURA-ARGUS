@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonProps = {
   children: ReactNode;
   href?: string;
   variant?: 'primary' | 'secondary' | 'ghost';
   className?: string;
-};
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children'>;
 
 const variants = {
   primary: 'bg-indigo-500 text-white hover:bg-indigo-400 shadow-lg shadow-indigo-500/20',
@@ -14,8 +14,12 @@ const variants = {
   ghost: 'text-slate-300 hover:text-white hover:bg-white/5'
 };
 
-export function Button({ children, href, variant = 'primary', className = '' }: ButtonProps) {
-  const classes = `inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${variants[variant]} ${className}`;
+export function Button({ children, href, variant = 'primary', className = '', ...buttonProps }: ButtonProps) {
+  const classes = `inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`;
   if (href) return <Link href={href} className={classes}>{children}</Link>;
-  return <button className={classes}>{children}</button>;
+  return (
+    <button type="button" className={classes} {...buttonProps}>
+      {children}
+    </button>
+  );
 }

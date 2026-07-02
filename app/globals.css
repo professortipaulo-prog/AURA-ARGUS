@@ -13,6 +13,20 @@
   --cyan: 34 211 238;
 }
 
+/**
+ * Tema claro (botão de tema claro/escuro). Sobrescreve apenas as
+ * variáveis de cor base; ver components/theme-toggle.tsx para a nota
+ * sobre componentes que ainda usam classes Tailwind fixas.
+ */
+html.theme-light {
+  --bg: 246 248 252;
+  --panel: 255 255 255;
+  --panel-soft: 241 244 249;
+  --line: 214 221 232;
+  --text: 15 23 42;
+  --muted: 100 116 139;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
@@ -49,3 +63,42 @@ a { color: inherit; text-decoration: none; }
 }
 
 .text-balance { text-wrap: balance; }
+
+/**
+ * Animações do avatar placeholder (components/avatar-panel.tsx).
+ * Movimento simulado por estado — NÃO é lip-sync real nem análise de
+ * áudio; é uma indicação visual de que o avatar "está vivo", conforme
+ * pedido explicitamente pelo Product Owner. O Avatar Engine real
+ * (visemas, lip-sync com áudio real) é trabalho futuro — Sprint-002 §9.
+ */
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+@keyframes avatar-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes avatar-ring-pulse {
+  0% { transform: scale(0.92); opacity: .55; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes avatar-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes avatar-wave {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+.avatar-anim-idle { animation: avatar-breathe 3.6s ease-in-out infinite; }
+.avatar-anim-bob { animation: avatar-bob 1.4s ease-in-out infinite; }
+.avatar-anim-ring { animation: avatar-ring-pulse 1.8s ease-out infinite; }
+.avatar-anim-dot { animation: avatar-dot-bounce 1.1s ease-in-out infinite; }
+.avatar-anim-wave { animation: avatar-wave 0.6s ease-in-out infinite; }
