@@ -1,155 +1,156 @@
-import Link from 'next/link';
-import { ProductCard } from '@/components/product-card';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { LogoWithWordmark } from '@/components/brand/logo-mark';
-
 const modules = [
-  { sigla: 'AURA', title: 'Assistente Universal de Raciocínio e Ação', text: 'Presença inteligente para conversa, escrita, documentos, projetos, voz e produtividade profissional.' },
-  { sigla: 'ARGUS', title: 'Agente de Raciocínio, Gestão, Unificação e Supervisão', text: 'Camada estratégica para observar, proteger, organizar rotas, memória, integrações e automações.' },
-  { sigla: 'CORE', title: 'Infraestrutura operacional', text: 'Autenticação, banco, storage, provedores de IA, sessão, permissões e deploy contínuo.' }
+  ['01', 'AI Router', 'Claude + Gemini', 'online'],
+  ['02', 'Memory Manager', 'Contexto e sessão', 'preparado'],
+  ['03', 'Action Manager', 'Ações e automações', 'preparado'],
+  ['04', 'Document Engine', 'PDF · Word · Excel', 'preparado'],
+  ['05', 'Voice Always-on', 'Escuta ativa futura', 'em breve'],
+  ['06', 'FaceID', 'Validação biométrica', 'em breve'],
 ];
 
-const capabilities = [
-  'Chat e conversa com IA',
-  'Memória de sessão e projeto',
-  'Documentos, leitura e geração',
-  'Projetos e fluxos de trabalho',
-  'Integrações com Drive, Gmail e OneDrive',
-  'Administração, logs e segurança'
-];
-
-const products = [
-  { title: 'AURA', label: 'Interface humana', text: 'Compreende, conversa, organiza e conduz sua rotina profissional com linguagem natural.' },
-  { title: 'ARGUS', label: 'Supervisão estratégica', text: 'Observa, monitora, antecipa riscos e coordena ações nos bastidores do sistema.' },
-  { title: 'AI Router', label: 'Claude + Gemini', text: 'Roteamento inteligente entre provedores de IA conforme contexto, custo e complexidade.' },
-  { title: 'Document Engine', label: 'Arquivos e relatórios', text: 'Base para gerar, ler, converter e organizar documentos em diversos formatos.' }
+const features = [
+  ['Chat inteligente', 'AURA conversa, organiza ideias, gera documentos e conduz sua produtividade.'],
+  ['Supervisão estratégica', 'ARGUS observa, analisa riscos, valida rotas, memória, APIs e integrações.'],
+  ['Documentos profissionais', 'Geração e leitura de PDF, Word, Excel, PowerPoint, imagens, código e arquivos técnicos.'],
+  ['Memória contextual', 'Perfil pessoal, profissional, projetos, preferências e histórico para respostas mais precisas.'],
+  ['Integrações', 'Preparado para Gmail, Drive, OneDrive, Teams, GitHub, NotebookLM e automações futuras.'],
+  ['Segurança operacional', 'Supabase, Vercel, rotas protegidas, logs e controle administrativo por usuário.'],
 ];
 
 export default function HomePage() {
   return (
-    <main className="psf-shell min-h-screen overflow-hidden">
-      <div className="matrix-rain" aria-hidden>
-        {Array.from({ length: 28 }).map((_, i) => (
-          <span key={i} style={{ left: `${(i * 3.7) % 100}%`, animationDelay: `${(i % 9) * -1.4}s`, animationDuration: `${12 + (i % 7) * 2}s` }}>
-            AURA ARGUS 0101 IA CORE FLOW MEMORY ACTION
-          </span>
-        ))}
-      </div>
+    <main className="psf-home">
+      <div className="psf-matrix" aria-hidden="true" />
+      <div className="psf-orb psf-orb-a" aria-hidden="true" />
+      <div className="psf-orb psf-orb-b" aria-hidden="true" />
 
-      <header className="psf-header mx-auto mt-6 flex max-w-7xl items-center justify-between px-6 py-4">
-        <LogoWithWordmark subtitle="Assistentes Inteligentes" />
-        <nav className="hidden items-center gap-8 text-sm font-bold text-slate-300 md:flex">
-          <a href="#produtos" className="psf-nav-link">Produtos</a>
-          <a href="#modulos" className="psf-nav-link">Módulos</a>
-          <a href="#aura-argus" className="psf-nav-link">AURA/ARGUS</a>
-          <a href="#core" className="psf-nav-link">CORE</a>
+      <header className="psf-nav-shell">
+        <a className="psf-brand" href="/">
+          <span className="psf-logo-mark">⬡</span>
+          <span>
+            <strong>AURA / ARGUS</strong>
+            <small>Assistentes Inteligentes</small>
+          </span>
+        </a>
+        <nav className="psf-nav-links" aria-label="Navegação principal">
+          <a href="#aura-argus">Assistentes</a>
+          <a href="#modulos">Módulos</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#roadmap">Roadmap</a>
         </nav>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Link href="/login" className="hidden text-sm font-bold text-slate-200 transition hover:text-white sm:inline-flex">Entrar</Link>
-          <Link href="/dashboard" className="psf-button">Abrir painel</Link>
+        <div className="psf-nav-actions">
+          <a className="psf-link-button" href="/login">Entrar</a>
+          <a className="psf-primary-button" href="/register">Criar perfil</a>
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 pb-24 pt-20 lg:grid-cols-[1.05fr_.95fr]">
-        <div className="relative z-10">
-          <div className="psf-pill"><span /> PSF • AURA / ARGUS • Inteligência operacional</div>
-          <h1 className="psf-hero-title mt-8 text-6xl font-black leading-[.95] tracking-[-.06em] text-white md:text-8xl">
-            Inteligência,<br />
-            <span>tecnologia</span><br />
-            e presença<br />
-            operacional.
+      <section className="psf-hero" id="topo">
+        <div className="psf-hero-copy">
+          <div className="psf-eyebrow"><span /> Núcleo de Inteligência Operacional</div>
+          <h1>
+            <span>AURA</span> e <span>ARGUS</span><br />
+            seu sistema operacional de IA para trabalho e vida profissional.
           </h1>
-          <p className="mt-8 max-w-2xl text-xl leading-9 text-slate-300">
-            AURA e ARGUS são o núcleo de IA da PSF para transformar trabalho, documentos,
-            automações, memória e decisões em um sistema operacional inteligente.
+          <p>
+            Dois assistentes inteligentes conectados ao seu contexto: AURA compreende, organiza e executa; ARGUS observa, analisa e supervisiona.
           </p>
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-            <Link href="/register" className="psf-button psf-button-green">Criar acesso</Link>
-            <Link href="/dashboard/chat" className="psf-button psf-button-outline">Testar chat</Link>
+          <div className="psf-hero-actions">
+            <a className="psf-primary-button large" href="/register">Criar perfil inicial</a>
+            <a className="psf-secondary-button large" href="/login">Já tenho acesso</a>
           </div>
-          <div className="mt-12 grid gap-3 sm:grid-cols-3">
-            <div className="psf-mini-stat"><b>Deploy</b><span>Vercel ativo</span></div>
-            <div className="psf-mini-stat"><b>IA</b><span>Claude + Gemini</span></div>
-            <div className="psf-mini-stat"><b>Banco</b><span>Supabase pronto</span></div>
+          <div className="psf-status-row">
+            <span><i /> Vercel online</span>
+            <span><i /> Supabase conectado</span>
+            <span><i /> Claude + Gemini configurados</span>
           </div>
         </div>
 
-        <div className="relative z-10">
-          <div className="psf-logo-stage">
-            <div className="psf-scan" />
-            <div className="psf-orbit psf-orbit-one" />
-            <div className="psf-orbit psf-orbit-two" />
-            <div className="psf-core-card">
-              <div className="psf-live-dot" />
-              <div className="psf-big-mark">A/A</div>
-              <p className="mt-7 text-xs font-bold uppercase tracking-[.34em] text-cyan-300">Sistema operacional de IA</p>
-              <h2 className="mt-3 text-4xl font-black text-white">AURA / ARGUS</h2>
-              <p className="mt-4 text-base leading-7 text-slate-300">
-                AURA compreende e age. ARGUS observa e protege. Juntos, formam um núcleo inteligente de raciocínio, ação, memória e supervisão.
-              </p>
-            </div>
+        <div className="psf-avatar-stage" aria-label="Avatares AURA e ARGUS">
+          <div className="psf-avatar-hud psf-hud-left">
+            <strong>AURA</strong>
+            <span>Assistente Universal de Raciocínio e Ação</span>
+            <em>Estou aqui para ajudar você.</em>
           </div>
+          <img src="/avatars/aura-argus-hero.png" alt="Avatares digitais AURA e ARGUS" />
+          <div className="psf-avatar-hud psf-hud-right">
+            <strong>ARGUS</strong>
+            <span>Agente de Raciocínio, Gestão, Unificação e Supervisão</span>
+            <em>Pronto para observar, analisar e executar.</em>
+          </div>
+          <div className="psf-wave" aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /></div>
         </div>
       </section>
 
-      <section id="produtos" className="mx-auto max-w-7xl px-6 py-20">
+      <section className="psf-section" id="aura-argus">
         <div className="psf-section-head">
-          <p>Produtos digitais</p>
-          <h2>AURA / ARGUS no portfólio PSF.</h2>
+          <span className="psf-section-tag">AURA + ARGUS</span>
+          <h2>Presença humana, visão estratégica e execução inteligente.</h2>
+          <p>A interface nasce inspirada no visual tecnológico da PSF, mas com identidade própria: neon azul, profundidade escura, avatares centrais e movimento sutil.</p>
         </div>
-        <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
-          <ProductCard />
-          <div className="grid gap-6 sm:grid-cols-2">
-            {products.map((item) => (
-              <article key={item.title} className="psf-service-card">
-                <span className="psf-card-kicker">{item.label}</span>
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </article>
-            ))}
-          </div>
+        <div className="psf-assistant-grid">
+          <article className="psf-agent-card aura">
+            <span className="psf-agent-icon">✦</span>
+            <h3>AURA</h3>
+            <small>Assistente Universal de Raciocínio e Ação</small>
+            <p>Foca em interação, escrita, documentos, organização, escuta ativa e produtividade pessoal/profissional.</p>
+            <div><b>Compreende</b><b>Organiza</b><b>Executa</b></div>
+          </article>
+          <article className="psf-agent-card argus">
+            <span className="psf-agent-icon">◉</span>
+            <h3>ARGUS</h3>
+            <small>Agente de Raciocínio, Gestão, Unificação e Supervisão</small>
+            <p>Foca em análise, segurança, supervisão, integrações, ações, custos, rotas e monitoramento do sistema.</p>
+            <div><b>Observa</b><b>Analisa</b><b>Protege</b></div>
+          </article>
         </div>
       </section>
 
-      <section id="modulos" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="psf-section-head">
-          <p>Núcleo do sistema</p>
-          <h2>Três camadas para um produto escalável.</h2>
+      <section className="psf-section" id="modulos">
+        <div className="psf-section-head compact">
+          <span className="psf-section-tag">Módulos</span>
+          <h2>O núcleo operacional.</h2>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          {modules.map((item) => (
-            <article key={item.sigla} className="psf-layer-card">
-              <strong>{item.sigla}</strong>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
+        <div className="psf-modules-grid">
+          {modules.map(([num, name, detail, status]) => (
+            <article key={name} className="psf-module-card">
+              <span>{num}</span>
+              <h3>{name}</h3>
+              <p>{detail}</p>
+              <em>{status}</em>
             </article>
           ))}
         </div>
       </section>
 
-      <section id="aura-argus" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="psf-panel-grid">
-          <div>
-            <div className="psf-section-head compact">
-              <p>Operação assistida</p>
-              <h2>O que o sistema precisa fazer por você.</h2>
-            </div>
-            <p className="max-w-2xl text-lg leading-8 text-slate-300">
-              A experiência deve começar pelo uso real: conversar, organizar, consultar documentos, executar tarefas, aprender com o contexto e proteger decisões.
-            </p>
-          </div>
-          <div className="psf-capability-list">
-            {capabilities.map((capability) => (
-              <div key={capability}><span>›</span>{capability}</div>
-            ))}
-          </div>
+      <section className="psf-section" id="recursos">
+        <div className="psf-section-head compact">
+          <span className="psf-section-tag">Recursos</span>
+          <h2>Projetado para ser mais que um chat.</h2>
+        </div>
+        <div className="psf-feature-grid">
+          {features.map(([title, description]) => (
+            <article key={title} className="psf-feature-card">
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </article>
+          ))}
         </div>
       </section>
 
-      <footer className="mx-auto max-w-7xl px-6 py-10 text-sm text-slate-500">
-        <div className="border-t border-cyan-400/10 pt-8">© 2026 AURA / ARGUS • PSF Editora, Consultoria e Tecnologia</div>
-      </footer>
+      <section className="psf-section psf-roadmap" id="roadmap">
+        <div className="psf-section-head compact">
+          <span className="psf-section-tag">Roadmap</span>
+          <h2>Próxima fase: autenticação real e dashboard protegido.</h2>
+          <p>A interface agora fica alinhada à identidade PSF. O próximo passo técnico é conectar cadastro, login, perfil admin e proteger as rotas de IA.</p>
+        </div>
+        <div className="psf-roadmap-line">
+          <span className="done">Infra</span>
+          <span className="done">Interface</span>
+          <span className="active">Auth</span>
+          <span>Chat IA</span>
+          <span>Memória</span>
+          <span>Ações</span>
+        </div>
+      </section>
     </main>
   );
 }

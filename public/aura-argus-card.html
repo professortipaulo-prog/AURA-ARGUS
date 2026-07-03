@@ -1,16 +1,15 @@
-<!-- Card AURA / ARGUS para inserir no site PSF, substituindo o card antigo de Inteligência Artificial. -->
-<style>
-  .psf-aura-card{background:linear-gradient(180deg,rgba(8,18,31,.92),rgba(4,10,18,.78));border:1px solid rgba(0,174,255,.25);border-radius:28px;padding:32px;color:#eaf6ff;box-shadow:0 22px 70px rgba(0,0,0,.34),inset 0 0 45px rgba(0,174,255,.06);font-family:Inter,system-ui,sans-serif;max-width:430px;position:relative;overflow:hidden}.psf-aura-card:before{content:"";position:absolute;inset:-40% -30% auto 35%;height:260px;background:radial-gradient(circle,rgba(0,174,255,.25),transparent 64%)}.psf-aura-icon{width:68px;height:68px;border-radius:20px;border:1px solid rgba(0,174,255,.32);background:rgba(0,105,255,.14);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:inset 0 0 26px rgba(0,174,255,.12)}.psf-aura-kicker{margin-top:18px;color:#23ff52;font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.psf-aura-card h3{margin:10px 0 0;color:#fff;font-size:28px;line-height:1.05;font-weight:950;letter-spacing:-.04em}.psf-aura-card p{margin:14px 0 0;color:#a9bad0;line-height:1.75;font-size:15px}.psf-aura-card ul{list-style:none;padding:0;margin:18px 0 0;color:#c8d8e8;font-size:14px}.psf-aura-card li{margin-top:10px}.psf-aura-card li:before{content:'›';color:#23ff52;font-weight:900;margin-right:10px}.psf-aura-link{position:relative;z-index:2;display:inline-flex;margin-top:22px;border:1px solid rgba(35,255,82,.52);border-radius:999px;padding:12px 18px;color:#23ff52;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.psf-aura-link:hover{background:rgba(35,255,82,.08)}
-</style>
-<div class="psf-aura-card">
-  <div class="psf-aura-icon">🤖</div>
-  <div class="psf-aura-kicker">Produto de IA da PSF</div>
+<!-- Card AURA/ARGUS para substituir o card genérico de Inteligência Artificial no site PSF -->
+<a class="aura-argus-card" href="https://aura-argus.vercel.app/" target="_blank" rel="noopener">
+  <span class="aura-argus-icon">◉</span>
   <h3>AURA / ARGUS</h3>
-  <p>Assistentes personalizados para vida profissional, documentos, fluxos assistidos por IA, engenharia de prompt, automações, memória e supervisão estratégica.</p>
+  <p>Seu sistema operacional de IA pessoal para trabalho, vida profissional, documentos e automações.</p>
   <ul>
-    <li>AURA para conversa, escrita e produtividade</li>
-    <li>ARGUS para monitoramento, análise e automações</li>
-    <li>Claude, Gemini, Supabase e Vercel como base técnica</li>
+    <li>AURA: raciocínio, escrita e ação</li>
+    <li>ARGUS: gestão, supervisão e integrações</li>
+    <li>Claude + Gemini com memória contextual</li>
   </ul>
-  <a class="psf-aura-link" href="https://aura-argus.vercel.app/" target="_blank" rel="noreferrer">Abrir AURA / ARGUS</a>
-</div>
+</a>
+
+<style>
+.aura-argus-card{display:block;position:relative;overflow:hidden;min-height:330px;padding:34px;border-radius:26px;border:1px solid rgba(14,165,255,.28);background:radial-gradient(circle at 90% 0%,rgba(14,165,255,.18),transparent 14rem),linear-gradient(145deg,rgba(7,19,31,.95),rgba(4,10,17,.86));box-shadow:0 24px 80px rgba(0,0,0,.34),inset 0 0 58px rgba(14,165,255,.05);transition:.25s;text-decoration:none;color:inherit}.aura-argus-card::before{content:"";position:absolute;inset:0;opacity:.16;background-image:repeating-linear-gradient(90deg,transparent 0 36px,rgba(57,255,20,.25) 37px,transparent 38px 78px);animation:auraMatrix 18s linear infinite}.aura-argus-card:hover{transform:translateY(-6px);border-color:rgba(57,255,20,.45);box-shadow:0 28px 96px rgba(14,165,255,.16),inset 0 0 58px rgba(14,165,255,.08)}.aura-argus-icon{position:relative;z-index:1;display:grid;place-items:center;width:58px;height:58px;border-radius:18px;color:#22d3ee;border:1px solid rgba(14,165,255,.4);background:rgba(14,165,255,.1);box-shadow:0 0 28px rgba(14,165,255,.18);font-size:25px}.aura-argus-card h3,.aura-argus-card p,.aura-argus-card ul{position:relative;z-index:1}.aura-argus-card h3{margin:24px 0 12px;color:#f8fbff;font-size:26px;font-weight:950;letter-spacing:-.03em}.aura-argus-card p{color:#a9bed4;line-height:1.65;font-size:15px}.aura-argus-card ul{display:grid;gap:10px;margin:22px 0 0;padding:0;list-style:none}.aura-argus-card li{color:#cfe8f8;font-size:14px}.aura-argus-card li::before{content:'›';color:#39ff14;font-weight:950;margin-right:10px}@keyframes auraMatrix{from{background-position:0 0}to{background-position:0 420px}}
+</style>

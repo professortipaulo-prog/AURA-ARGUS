@@ -1,23 +1,20 @@
+/**
+ * Card AURA/ARGUS para uso dentro do ecossistema PSF.
+ * Deve substituir o card genérico de IA no site/landing da PSF.
+ */
 import Link from 'next/link';
 
 export function ProductCard() {
   return (
-    <article className="psf-product-card" id="core">
-      <div className="psf-product-icon">🤖</div>
-      <p className="psf-card-kicker">Produto de IA da PSF</p>
+    <Link href="https://aura-argus.vercel.app/" className="psf-product-card" target="_blank">
+      <span className="psf-product-icon">◉</span>
       <h3>AURA / ARGUS</h3>
-      <p>
-        Assistentes personalizados para vida profissional, documentos, fluxos assistidos por IA,
-        engenharia de prompt, automações, memória e supervisão estratégica.
-      </p>
+      <p>Seu sistema operacional de IA pessoal para trabalho, vida profissional, documentos e automações.</p>
       <ul>
-        <li>Assistente AURA para conversa, escrita e produtividade</li>
-        <li>ARGUS para monitoramento, análise e automações</li>
-        <li>Integração com Claude, Gemini, Supabase e Vercel</li>
+        <li>AURA: raciocínio, escrita e ação</li>
+        <li>ARGUS: gestão, supervisão e integrações</li>
+        <li>Claude + Gemini com memória contextual</li>
       </ul>
-      <Link href="https://aura-argus.vercel.app/" target="_blank" rel="noreferrer" className="psf-product-link">
-        Abrir AURA / ARGUS
-      </Link>
-    </article>
+    </Link>
   );
 }
