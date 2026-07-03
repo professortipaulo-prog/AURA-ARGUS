@@ -1,30 +1,19 @@
 'use client';
 
-/**
- * components/theme-toggle.tsx
- * Botão de tema claro/escuro (item obrigatório da tarefa inicial).
- *
- * A troca funciona alternando a classe `theme-light` em <html> e
- * persistindo a preferência em localStorage. As variáveis de cor base
- * (--bg, --panel, --text, etc. em app/globals.css) respondem à troca
- * imediatamente.
- *
- * Nota (ver README > Pendências Técnicas): os componentes visuais da
- * Sprint 005 (`components/ui/*`, sidebar, header) usam classes Tailwind
- * fixas (ex: `text-white`, `bg-slate-950/70`) em vez das variáveis de
- * tema. Isso significa que o "casco" da aplicação (fundo, cards com
- * `.aura-card`) já responde ao tema, mas uma repintura completa de
- * todos os componentes para o tema claro é um trabalho futuro, fora do
- * escopo desta tarefa.
- */
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'aura-argus-theme';
+const ASSISTANT_KEY = 'aura-argus-assistant-mode';
 type ThemeMode = 'dark' | 'light';
+type AssistantMode = 'aura' | 'argus';
 
-function applyTheme(mode: ThemeMode) {
+function applyMode(theme: ThemeMode, assistant?: AssistantMode) {
   const root = document.documentElement;
-  root.classList.toggle('theme-light', mode === 'light');
+  const mode = assistant ?? (theme === 'light' ? 'aura' : 'argus');
+  root.classList.toggle('theme-light', theme === 'light');
+  root.dataset.assistant = mode;
+  window.localStorage.setItem(ASSISTANT_KEY, mode);
+  window.dispatchEvent(new CustomEvent('aura-argus-assistant-mode', { detail: mode }));
 }
 
 export function ThemeToggle() {
@@ -33,27 +22,23 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    const initial = stored ?? 'dark';
+    const storedAssistant = window.localStorage.getItem(ASSISTANT_KEY) as AssistantMode | null;
+    const initial = stored ?? (storedAssistant === 'aura' ? 'light' : 'dark');
     setMode(initial);
-    applyTheme(initial);
+    applyMode(initial, storedAssistant ?? undefined);
     setMounted(true);
   }, []);
 
   function toggle() {
     const next: ThemeMode = mode === 'dark' ? 'light' : 'dark';
     setMode(next);
-    applyTheme(next);
     window.localStorage.setItem(STORAGE_KEY, next);
+    applyMode(next, next === 'light' ? 'aura' : 'argus');
   }
 
-  // Evita flash de conteúdo incorreto antes da leitura do localStorage.
   if (!mounted) {
     return (
-      <button
-        type="button"
-        aria-label="Alternar tema claro/escuro"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300"
-      >
+      <button type="button" aria-label="Alternar tema" className="living-theme-toggle">
         •
       </button>
     );
@@ -63,9 +48,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Alternar tema claro/escuro"
-      title={mode === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+      aria-label="Alternar tema AURA/ARGUS"
+      title={mode === 'dark' ? 'Alternar para AURA' : 'Alternar para ARGUS'}
+      className="living-theme-toggle"
     >
       {mode === 'dark' ? '☀️' : '🌙'}
     </button>
