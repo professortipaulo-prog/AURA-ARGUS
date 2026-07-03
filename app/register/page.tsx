@@ -52,8 +52,8 @@ export default function RegisterPage() {
       body: JSON.stringify({ fullName, professionalTitle, company, discProfile, preferences })
     });
 
+    const response = await profileResponse.json().catch(() => null);
     if (!profileResponse.ok) {
-      const response = await profileResponse.json().catch(() => null);
       setError(response?.error ?? 'Cadastro criado, mas não foi possível salvar o perfil.');
       setIsLoading(false);
       return;
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           <div><p className="font-bold text-white">AURA / ARGUS</p><p className="text-xs text-slate-500">Cadastro inicial</p></div>
         </Link>
         <h1 className="text-3xl font-bold text-white">Criar perfil</h1>
-        <p className="mt-2 text-sm text-slate-400">Cadastro real integrado ao Supabase Auth e ao perfil em core.profiles.</p>
+        <p className="mt-2 text-sm text-slate-400">Cadastro integrado ao Supabase Auth. O perfil operacional será sincronizado com o banco do AURA/ARGUS.</p>
         <form className="mt-8 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome completo" required />
           <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="E-mail" required />

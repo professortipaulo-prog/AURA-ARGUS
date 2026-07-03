@@ -12,10 +12,21 @@ type ProfileBody = {
   preferences?: string;
 };
 
+type SetupWarning = {
+  step: string;
+  message: string;
+};
+
 function cleanString(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
+}
+
+function isSchemaExposureError(message?: string): boolean {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes('invalid schema') || normalized.includes('schema must be one of');
 }
 
 export async function POST(request: Request) {
@@ -37,14 +48,16 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
+  const core = admin.schema('core');
+  const warnings: SetupWarning[] = [];
+
   const email = user.email.toLowerCase();
   const isFounder = email === ADMIN_EMAIL;
   const role = isFounder ? 'owner' : 'viewer';
   const fullName = cleanString(body.fullName) ?? (isFounder ? 'Paulo S. Filho' : user.email);
   const displayName = cleanString(body.displayName) ?? (isFounder ? 'Paulo Filho' : fullName);
 
-  const { error: orgError } = await admin
-    .schema('core')
+  const { error: orgError } = await core
     .from('organizations')
     .upsert(
       {
@@ -58,14 +71,21 @@ export async function POST(request: Request) {
     );
 
   if (orgError) {
+    if (isSchemaExposureError(orgError.message)) {
+      warnings.push({
+        step: 'organization',
+        message: 'Schema core ainda não está exposto na API do Supabase. Login liberado; perfil será sincronizado após expor o schema core.'
+      });
+      return NextResponse.json({ ok: true, role, organizationId: null, warnings });
+    }
+
     return NextResponse.json({ ok: false, error: `Erro ao preparar organização: ${orgError.message}` }, { status: 500 });
   }
 
   const discValue = cleanString(body.discProfile);
   const preferencesText = cleanString(body.preferences);
 
-  const { error: profileError } = await admin
-    .schema('core')
+  const { error: profileError } = await core
     .from('profiles')
     .upsert(
       {
@@ -77,7 +97,6 @@ export async function POST(request: Request) {
         company: cleanString(body.company) ?? (isFounder ? 'AURA/ARGUS' : null),
         disc_profile: discValue ? { predominant: discValue } : {},
         preferences: {
-          username: isFounder ? 'paulofilho' : null,
           onboarding_notes: preferencesText,
           role_hint: role
         },
@@ -92,8 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: `Erro ao salvar perfil: ${profileError.message}` }, { status: 500 });
   }
 
-  const { error: memberError } = await admin
-    .schema('core')
+  const { error: memberError } = await core
     .from('organization_members')
     .upsert(
       {
@@ -109,5 +127,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: `Erro ao definir acesso: ${memberError.message}` }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, role, organizationId: DEFAULT_ORGANIZATION_ID });
+  return NextResponse.json({ ok: true, role, organizationId: DEFAULT_ORGANIZATION_ID, warnings });
 }
