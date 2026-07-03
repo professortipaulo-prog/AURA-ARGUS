@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getAvailableModels } from '@/lib/ai/ai-router';
+import { getModelInventory } from '@/lib/ai/ai-router';
 
-export async function GET() {
-  const models = await getAvailableModels();
-  return NextResponse.json(models);
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const refresh = searchParams.get('refresh') === 'true';
+  const inventory = await getModelInventory(refresh);
+  return NextResponse.json(inventory);
 }

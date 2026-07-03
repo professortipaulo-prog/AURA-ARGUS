@@ -2,18 +2,18 @@ import { NextResponse } from 'next/server';
 import { sendChat } from '@/lib/ai/ai-router';
 import { ProviderNotConfiguredError, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
-function cleanProviderError(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error);
+function friendlyAIError(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Erro desconhecido ao chamar o provedor de IA.';
 
-  if (/model|not found|404|not supported/i.test(raw)) {
-    return 'Modelo de IA indisponível para este provedor. O AURA/ARGUS tentou atualizar a seleção automaticamente, mas não encontrou um modelo compatível. Verifique /api/ai/models.';
+  if (/model|modelo|not found|404/i.test(message)) {
+    return 'Não foi possível usar o modelo solicitado. O AURA/ARGUS tentou selecionar automaticamente outro modelo disponível. Verifique /api/ai/models se o problema continuar.';
   }
 
-  if (/api[_ -]?key|unauthorized|permission|auth/i.test(raw)) {
-    return 'Chave de API inválida, ausente ou sem permissão para este provedor.';
+  if (/api key|chave|authentication|auth|permission|401|403/i.test(message)) {
+    return 'A chave do provedor de IA parece inválida, ausente ou sem permissão. Verifique as variáveis de ambiente na Vercel.';
   }
 
-  return raw || 'Erro desconhecido ao chamar o provedor de IA.';
+  return message;
 }
 
 export async function POST(request: Request) {
@@ -31,7 +31,10 @@ export async function POST(request: Request) {
 
   const provider = body.provider as AIProviderId | undefined;
   if (provider && provider !== 'anthropic' && provider !== 'gemini') {
-    return NextResponse.json({ ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' },
+      { status: 400 }
+    );
   }
 
   try {
@@ -41,7 +44,6 @@ export async function POST(request: Request) {
     if (error instanceof ProviderNotConfiguredError) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 503 });
     }
-
-    return NextResponse.json({ ok: false, error: cleanProviderError(error) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: friendlyAIError(error) }, { status: 500 });
   }
 }
