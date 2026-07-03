@@ -1,14 +1,6 @@
 /**
- * lib/ai/types.ts
- * Tipos do AI Provider Setup (Sprint 006). Camada de conexão real com
- * Anthropic Claude e Google Gemini, isolada em lib/ai/*.
- *
- * Relação com modules/ai-router: aquele módulo (Sprint 004) contém a
- * POLÍTICA de roteamento (classificação de tarefa, fallback, timeouts)
- * de forma estrutural, sem chamadas reais. Este arquivo e os demais em
- * lib/ai/* fazem a CONEXÃO real com os provedores, mantida
- * deliberadamente em um módulo separado para não exigir alterações em
- * modules/ai-router nesta sprint.
+ * Tipos do AI Provider Manager.
+ * Mantém as chaves no servidor e expõe apenas metadados seguros.
  */
 
 export type AIProviderId = 'anthropic' | 'gemini';
@@ -25,6 +17,14 @@ export interface ChatResponseBody {
   response: string;
 }
 
+export interface AIModelInfo {
+  id: string;
+  name: string;
+  provider: AIProviderId;
+  description?: string;
+  supportsGenerateContent?: boolean;
+}
+
 export interface ProviderStatusEntry {
   provider: AIProviderId;
   configured: boolean;
@@ -36,12 +36,26 @@ export interface AIStatusResponse {
   providers: ProviderStatusEntry[];
 }
 
-/** Contrato que cada provedor concreto (Anthropic, Gemini) deve implementar. */
+export interface AIModelsResponse {
+  defaultProvider: AIProviderId;
+  providers: Array<{
+    provider: AIProviderId;
+    configured: boolean;
+    defaultModel: string;
+    selectedModel?: string;
+    models: AIModelInfo[];
+    error?: string;
+  }>;
+}
+
+/** Contrato que cada provedor concreto deve implementar. */
 export interface AIProviderAdapter {
   id: AIProviderId;
   defaultModel: string;
   isConfigured(): boolean;
-  send(message: string, model?: string): Promise<string>;
+  listModels(): Promise<AIModelInfo[]>;
+  resolveModel(model?: string): Promise<string>;
+  send(message: string, model?: string): Promise<{ text: string; model: string }>;
 }
 
 /** Erro amigável quando um provedor é solicitado sem chave configurada. */

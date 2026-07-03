@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
 import { sendChat } from '@/lib/ai/ai-router';
 import { ProviderNotConfiguredError, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
-export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ ok: false, error: 'Acesso negado. Faça login para usar a IA.' }, { status: 401 });
+function cleanProviderError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+
+  if (/model|not found|404|not supported/i.test(raw)) {
+    return 'Modelo de IA indisponível para este provedor. O AURA/ARGUS tentou atualizar a seleção automaticamente, mas não encontrou um modelo compatível. Verifique /api/ai/models.';
   }
 
+  if (/api[_ -]?key|unauthorized|permission|auth/i.test(raw)) {
+    return 'Chave de API inválida, ausente ou sem permissão para este provedor.';
+  }
+
+  return raw || 'Erro desconhecido ao chamar o provedor de IA.';
+}
+
+export async function POST(request: Request) {
   let body: Partial<ChatRequestBody>;
 
   try {
@@ -23,10 +31,7 @@ export async function POST(request: Request) {
 
   const provider = body.provider as AIProviderId | undefined;
   if (provider && provider !== 'anthropic' && provider !== 'gemini') {
-    return NextResponse.json(
-      { ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' }, { status: 400 });
   }
 
   try {
@@ -36,9 +41,7 @@ export async function POST(request: Request) {
     if (error instanceof ProviderNotConfiguredError) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 503 });
     }
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Erro desconhecido ao chamar o provedor de IA.' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ ok: false, error: cleanProviderError(error) }, { status: 500 });
   }
 }

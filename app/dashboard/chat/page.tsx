@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AvatarPanel, type AvatarState } from '@/components/avatar-panel';
 
-type ChatMessage = { role: 'user' | 'assistant' | 'error'; content: string };
+type ChatMessage = { role: 'user' | 'assistant' | 'error'; content: string; meta?: string };
 
 const PERSONA_PROVIDER = {
   aura: 'anthropic',
@@ -60,7 +60,7 @@ export default function ChatPage() {
       }
 
       setAvatarState('speaking');
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response, meta: `${data.provider} · ${data.model}` }]);
       setTimeout(() => setAvatarState('idle'), 1800);
     } catch {
       setMessages((prev) => [...prev, { role: 'error', content: 'Não foi possível contatar /api/ai/chat. Verifique sua conexão.' }]);
@@ -94,6 +94,7 @@ export default function ChatPage() {
                   }
                 >
                   {msg.content}
+                  {msg.meta ? <div className="mt-3 text-[11px] text-slate-500">{msg.meta}</div> : null}
                 </div>
               );
             })}
@@ -111,7 +112,7 @@ export default function ChatPage() {
             </Button>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            Chama {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic' : 'Gemini'} de verdade via /api/ai/chat. Se a chave não estiver configurada na Vercel, você verá um aviso amarelo em vez de uma resposta.
+            Chama {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic' : 'Gemini'} via /api/ai/chat. O modelo é selecionado automaticamente a partir dos modelos disponíveis em /api/ai/models.
           </p>
         </Card>
         <div className="space-y-6">
