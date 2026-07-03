@@ -1,38 +1,86 @@
+import Link from 'next/link';
 import { Header } from '@/components/layout/header';
-import { Card } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
-import { LivingBackground } from '@/components/living-background';
+import { AvatarPanel } from '@/components/avatar-panel';
 
-const activities = ['Banco Supabase configurado', 'Buckets e policies criados', 'Deploy Vercel publicado', 'Profile Engine ativo'];
+const metrics = [
+  ['Status', 'Live', 'Sistema online'],
+  ['Banco', 'RLS', 'Supabase seguro'],
+  ['IA', 'Auto', 'Modelos dinâmicos'],
+  ['Perfil', 'Ativo', 'Contexto aplicado']
+];
+
+const timeline = ['Supabase configurado', 'Buckets e policies criados', 'Deploy Vercel publicado', 'Profile Engine ativo', 'Identity Engine iniciado'];
 
 export default function DashboardPage() {
   return (
-    <div className="dashboard-surface agent-argus">
-      <LivingBackground mode="argus" />
-      <Header title="Painel principal" subtitle="Núcleo operacional AURA/ARGUS." />
-      <section className="space-y-6 p-5 lg:p-8">
-        <div className="grid gap-4 md:grid-cols-4">
-          <StatCard label="Status" value="Live" detail="Sistema online" />
-          <StatCard label="Banco" value="RLS" detail="Supabase seguro" />
-          <StatCard label="IA" value="Auto" detail="Modelos dinâmicos" />
-          <StatCard label="Perfil" value="Ativo" detail="Contexto aplicado" />
-        </div>
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-          <Card>
-            <h2 className="text-xl font-bold text-white">Central AURA/ARGUS</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">Interface operacional para chat, memória, projetos, documentos, agentes e administração.</p>
-            <div className="mt-6 grid gap-3 md:grid-cols-2">
-              {['Conversar com IA', 'Criar projeto', 'Enviar documento', 'Configurar agente'].map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-sm text-slate-300">{item}</div>)}
+    <>
+      <Header title="Central de Operações" subtitle="Núcleo operacional do AURA/ARGUS." />
+      <section className="aios-dashboard-grid">
+        <div className="aios-content-column">
+          <div className="aios-metrics-grid">
+            {metrics.map(([label, value, detail]) => (
+              <article className="aios-metric" key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+                <p>{detail}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="aios-panel-grid">
+            <article className="aios-panel featured">
+              <span className="aios-panel-icon">⬡</span>
+              <h2>Central AURA/ARGUS</h2>
+              <p>Interface operacional para chat, memória, projetos, documentos, agentes e administração.</p>
+              <div className="aios-action-grid">
+                <Link href="/dashboard/chat">Conversar com IA</Link>
+                <Link href="/dashboard/projects">Criar projeto</Link>
+                <Link href="/dashboard/documents">Enviar documento</Link>
+                <Link href="/dashboard/agents">Configurar agente</Link>
+              </div>
+            </article>
+
+            <article className="aios-panel timeline">
+              <span className="aios-panel-icon">◷</span>
+              <h2>Linha do tempo</h2>
+              <div>
+                {timeline.map((item) => (
+                  <p key={item}><i />{item}</p>
+                ))}
+              </div>
+            </article>
+          </div>
+
+          <article className="aios-panel projects">
+            <div className="aios-panel-title-row">
+              <h2>Projetos recentes</h2>
+              <Link href="/dashboard/projects">Ver todos</Link>
             </div>
-          </Card>
-          <Card>
-            <h2 className="text-xl font-bold text-white">Linha do tempo</h2>
-            <div className="mt-5 space-y-4">
-              {activities.map((item) => <div key={item} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 rounded-full bg-cyan-300" /><span className="text-slate-300">{item}</span></div>)}
+            <div className="aios-project-grid">
+              {['AcadêmicoFácil', 'Hub Agentes IA', 'PSF Editora'].map((project) => (
+                <div key={project}>
+                  <span>▣</span>
+                  <strong>{project}</strong>
+                  <p>Atualizado recentemente</p>
+                </div>
+              ))}
+              <Link href="/dashboard/projects" className="new-project">+ Novo projeto</Link>
             </div>
-          </Card>
+          </article>
         </div>
+
+        <aside className="aios-right-column">
+          <AvatarPanel persona="aura" state="idle" large />
+          <article className="aios-panel context-panel">
+            <h2>Contexto ativo</h2>
+            <p><span>Projeto atual</span>AURA/ARGUS</p>
+            <p><span>Memória</span>Perfil inteligente aplicado</p>
+            <p><span>Modelo ativo</span>Seleção automática</p>
+            <p><span>Ferramentas</span>Preparadas para integração</p>
+            <Link href="/dashboard/profile">Ver perfil completo →</Link>
+          </article>
+        </aside>
       </section>
-    </div>
+    </>
   );
 }

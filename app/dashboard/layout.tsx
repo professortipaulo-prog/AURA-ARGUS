@@ -8,10 +8,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect('/login');
 
   return (
-    <div className="dashboard-os min-h-screen lg:flex">
-      <LivingBackground />
+    <div className="aios-shell">
+      <LivingBackground persona="argus" />
       <Sidebar displayName={session.displayName ?? session.email} role={session.role} />
-      <main className="relative z-10 min-w-0 flex-1">{children}</main>
+      <main className="aios-main">{children}</main>
     </div>
   );
 }

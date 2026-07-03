@@ -3,18 +3,16 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AURA / ARGUS',
-  description: 'Assistente profissional inteligente para vida, trabalho, documentos, memoria e automacoes.'
+  description: 'Sistema operacional profissional de IA para trabalho, documentos, memória e automações.'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-assistant-theme="argus">
       <head>
-        {/* Evita flash de tema incorreto: aplica a preferência salva antes da pintura inicial. */}
         <script
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('aura-argus-theme');if(t==='light'){document.documentElement.classList.add('theme-light');}}catch(e){}`
+            __html: `try{var t=localStorage.getItem('aura-argus-mode');if(t==='aura'||t==='argus'){document.documentElement.dataset.assistantTheme=t;}}catch(e){}`
           }}
         />
       </head>
