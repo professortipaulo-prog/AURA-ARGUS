@@ -82,14 +82,14 @@ export async function sendChat(body: ChatRequestBody): Promise<ChatResponseBody>
   const resolvedModel = await resolveProviderModel(provider.id, requestedModel);
 
   try {
-    const response = await provider.send(body.message, resolvedModel);
+    const response = await provider.send(body.message, resolvedModel, body.systemPrompt);
     return { provider: provider.id, model: resolvedModel, response };
   } catch (primaryError) {
     const fallbackProvider = provider.id === 'anthropic' ? geminiProvider : anthropicProvider;
     if (fallbackProvider.isConfigured()) {
       try {
         const fallbackModel = await resolveProviderModel(fallbackProvider.id, fallbackProvider.defaultModel);
-        const response = await fallbackProvider.send(body.message, fallbackModel);
+        const response = await fallbackProvider.send(body.message, fallbackModel, body.systemPrompt);
         return { provider: fallbackProvider.id, model: fallbackModel, response };
       } catch {
         // Retorna o erro primário abaixo.

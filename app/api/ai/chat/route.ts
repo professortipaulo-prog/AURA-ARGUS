@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendChat } from '@/lib/ai/ai-router';
+import { getCurrentUserIdentity } from '@/lib/identity/server';
 import { ProviderNotConfiguredError, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 function friendlyAIError(error: unknown) {
@@ -38,8 +39,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendChat({ message: body.message, provider, model: body.model });
-    return NextResponse.json(result);
+    const { identity } = await getCurrentUserIdentity();
+    const persona = provider === 'gemini' ? 'ARGUS' : 'AURA';
+    const identityPrompt = identity ? (persona === 'ARGUS' ? identity.argusInstruction : identity.auraInstruction) : undefined;
+    const result = await sendChat({ message: body.message, provider, model: body.model, systemPrompt: identityPrompt });
+    return NextResponse.json({ ...result, identityApplied: Boolean(identityPrompt), persona });
   } catch (error) {
     if (error instanceof ProviderNotConfiguredError) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 503 });

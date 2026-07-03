@@ -4,6 +4,7 @@ export interface ChatRequestBody {
   message: string;
   provider?: AIProviderId;
   model?: string;
+  systemPrompt?: string;
 }
 
 export interface ChatResponseBody {
@@ -30,7 +31,7 @@ export interface AIProviderAdapter {
   id: AIProviderId;
   defaultModel: string;
   isConfigured(): boolean;
-  send(message: string, model: string): Promise<string>;
+  send(message: string, model: string, systemPrompt?: string): Promise<string>;
 }
 
 export class ProviderNotConfiguredError extends Error {

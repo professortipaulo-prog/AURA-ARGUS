@@ -23,12 +23,13 @@ export const anthropicProvider: AIProviderAdapter = {
     return Boolean(process.env.ANTHROPIC_API_KEY);
   },
 
-  async send(message: string, model: string): Promise<string> {
+  async send(message: string, model: string, systemPrompt?: string): Promise<string> {
     const client = getClient();
 
     const response = await client.messages.create({
       model,
-      max_tokens: 1024,
+      max_tokens: 1200,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: [{ role: 'user', content: message }]
     });
 

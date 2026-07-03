@@ -5,6 +5,7 @@ const items: Array<[string, string, string]> = [
   ['Visao geral', '/dashboard', '⌘'],
   ['Chat IA', '/dashboard/chat', '◈'],
   ['Perfil', '/dashboard/profile', '◉'],
+  ['Identidade', '/dashboard/identity', '◍'],
   ['Projetos', '/dashboard/projects', '▣'],
   ['Documentos', '/dashboard/documents', '▤'],
   ['Memoria', '/dashboard/memory', '◎'],

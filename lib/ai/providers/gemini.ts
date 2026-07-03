@@ -23,9 +23,9 @@ export const geminiProvider: AIProviderAdapter = {
     return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
   },
 
-  async send(message: string, model: string): Promise<string> {
+  async send(message: string, model: string, systemPrompt?: string): Promise<string> {
     const client = getClient();
-    const generativeModel = client.getGenerativeModel({ model });
+    const generativeModel = client.getGenerativeModel({ model, ...(systemPrompt ? { systemInstruction: systemPrompt } : {}) });
     const result = await generativeModel.generateContent(message);
     const text = result.response.text();
 
