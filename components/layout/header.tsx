@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function Header({ title, subtitle }: { title: string; subtitle: string }) {
@@ -12,8 +11,6 @@ export function Header({ title, subtitle }: { title: string; subtitle: string })
         </div>
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
-          <Button href="/dashboard/chat" variant="secondary">Abrir chat</Button>
-          <Button href="/login">Entrar</Button>
         </div>
       </div>
     </header>

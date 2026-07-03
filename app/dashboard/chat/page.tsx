@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * app/dashboard/chat/page.tsx
- * Chat conectado à IA REAL via /api/ai/chat (lib/ai/ai-router.ts).
- * Cada persona usa um provedor diferente por padrão — AURA → Anthropic
- * (redação/raciocínio), ARGUS → Gemini (respostas técnicas rápidas) —
- * mas isso é só uma escolha de demonstração; qualquer um funciona com
- * qualquer provedor.
- *
- * Se a chave do provedor não estiver configurada na Vercel
- * (ANTHROPIC_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY), a rota retorna um
- * erro amigável (HTTP 503) e é isso que aparece na tela — nada é
- * simulado ou inventado quando a IA não responde de verdade.
- */
 import { useState } from 'react';
 import { Header } from '@/components/layout/header';
 import { Card } from '@/components/ui/card';
@@ -20,19 +7,29 @@ import { Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AvatarPanel, type AvatarState } from '@/components/avatar-panel';
 
+type Persona = 'aura' | 'argus';
 type ChatMessage = { role: 'user' | 'assistant' | 'error'; content: string; meta?: string };
 
-const PERSONA_PROVIDER = {
+const PERSONA_PROVIDER: Record<Persona, 'anthropic' | 'gemini'> = {
   aura: 'anthropic',
   argus: 'gemini'
-} as const;
+};
+
+const PERSONA_LABEL: Record<Persona, string> = {
+  aura: 'AURA',
+  argus: 'ARGUS'
+};
 
 export default function ChatPage() {
-  const [persona, setPersona] = useState<'aura' | 'argus'>('aura');
+  const [persona, setPersona] = useState<Persona>('aura');
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Olá, Paulo. Sou a AURA/ARGUS. Digite algo e clique em Enviar — já estou conectada à rota real de IA (/api/ai/chat).' }
+    {
+      role: 'assistant',
+      content:
+        'Olá, Paulo. Sou a AURA/ARGUS. Escolha AURA ou ARGUS, digite sua solicitação e pressione Enter para enviar. Use Shift + Enter para quebrar linha.'
+    }
   ]);
   const [isSending, setIsSending] = useState(false);
 
@@ -49,7 +46,11 @@ export default function ChatPage() {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, provider: PERSONA_PROVIDER[persona] })
+        body: JSON.stringify({
+          message: text,
+          persona,
+          provider: PERSONA_PROVIDER[persona]
+        })
       });
       const data = await response.json();
 
@@ -60,7 +61,14 @@ export default function ChatPage() {
       }
 
       setAvatarState('speaking');
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response, meta: `${data.provider} · ${data.model}` }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.response,
+          meta: `${data.persona ?? PERSONA_LABEL[persona]} · ${data.provider} · ${data.model}`
+        }
+      ]);
       setTimeout(() => setAvatarState('idle'), 1800);
     } catch {
       setMessages((prev) => [...prev, { role: 'error', content: 'Não foi possível contatar /api/ai/chat. Verifique sua conexão.' }]);
@@ -70,9 +78,16 @@ export default function ChatPage() {
     }
   }
 
+  function handleInputKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void handleSend();
+    }
+  }
+
   return (
     <>
-      <Header title="Chat IA" subtitle="Conectado à IA real via /api/ai/chat." />
+      <Header title="Chat IA" subtitle="AURA e ARGUS conectados à IA real via /api/ai/chat." />
       <section className="grid gap-6 p-5 lg:grid-cols-[1fr_340px] lg:p-8">
         <Card className="flex min-h-[620px] flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto">
@@ -90,7 +105,7 @@ export default function ChatPage() {
                   className={
                     msg.role === 'user'
                       ? 'ml-auto max-w-xl rounded-3xl bg-indigo-500 p-4 text-sm text-white'
-                      : 'max-w-xl rounded-3xl bg-white/[.06] p-4 text-sm text-slate-300'
+                      : 'max-w-xl whitespace-pre-wrap rounded-3xl bg-white/[.06] p-4 text-sm leading-relaxed text-slate-300'
                   }
                 >
                   {msg.content}
@@ -105,6 +120,7 @@ export default function ChatPage() {
               placeholder="Digite sua solicitação..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               disabled={isSending}
             />
             <Button onClick={handleSend} disabled={isSending || !input.trim()}>
@@ -112,7 +128,7 @@ export default function ChatPage() {
             </Button>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            Chama {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic' : 'Gemini'} via /api/ai/chat. O modelo é selecionado automaticamente a partir dos modelos disponíveis em /api/ai/models.
+            Enter envia. Shift + Enter quebra linha. Persona ativa: {PERSONA_LABEL[persona]}. Provedor: {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic Claude' : 'Google Gemini'}.
           </p>
         </Card>
         <div className="space-y-6">
@@ -137,9 +153,9 @@ export default function ChatPage() {
             <h2 className="font-bold text-white">Contexto ativo</h2>
             <div className="mt-4 space-y-3 text-sm text-slate-400">
               <p>Projeto: AURA/ARGUS</p>
-              <p>Persona: {persona === 'aura' ? 'AURA' : 'ARGUS'}</p>
+              <p>Persona: {PERSONA_LABEL[persona]}</p>
               <p>Provedor: {PERSONA_PROVIDER[persona] === 'anthropic' ? 'Anthropic Claude' : 'Google Gemini'}</p>
-              <p>Memória: ainda não persistente (fora de escopo)</p>
+              <p>Identidade: perfil inteligente aplicado automaticamente</p>
             </div>
           </Card>
         </div>

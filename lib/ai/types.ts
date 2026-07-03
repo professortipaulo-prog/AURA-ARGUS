@@ -1,10 +1,12 @@
 export type AIProviderId = 'anthropic' | 'gemini';
+export type AIPersonaId = 'aura' | 'argus';
 
 export interface ChatRequestBody {
   message: string;
   provider?: AIProviderId;
   model?: string;
   systemPrompt?: string;
+  persona?: AIPersonaId;
 }
 
 export interface ChatResponseBody {
