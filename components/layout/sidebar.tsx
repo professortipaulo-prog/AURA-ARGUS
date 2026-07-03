@@ -3,8 +3,8 @@ import { LogoWithWordmark } from '@/components/brand/logo-mark';
 
 const items: Array<[string, string, string]> = [
   ['Visao geral', '/dashboard', '⌘'],
-  ['Perfil', '/dashboard/profile', '◉'],
   ['Chat IA', '/dashboard/chat', '◈'],
+  ['Perfil', '/dashboard/profile', '◉'],
   ['Projetos', '/dashboard/projects', '▣'],
   ['Documentos', '/dashboard/documents', '▤'],
   ['Memoria', '/dashboard/memory', '◎'],

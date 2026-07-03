@@ -1,67 +1,93 @@
-export type ProfileEngineData = {
+export type KnowledgeLevel = 0 | 1 | 2 | 3 | 4;
+
+export type ProfileData = {
   personal: {
-    fullName?: string;
-    preferredName?: string;
-    birthDate?: string;
-    language?: string;
-    country?: string;
-    city?: string;
-    timezone?: string;
+    fullName: string;
+    preferredName: string;
+    city: string;
+    country: string;
+    language: string;
+    timezone: string;
   };
   professional: {
-    title?: string;
-    company?: string;
-    area?: string;
-    education?: string;
-    certifications?: string;
-    linkedin?: string;
-    github?: string;
-    portfolio?: string;
+    title: string;
+    company: string;
+    department: string;
+    area: string;
+    education: string;
+    experienceYears: string;
+    workMode: string;
+    linkedin: string;
+    github: string;
+    portfolio: string;
+    certifications: string;
   };
-  behavioral: {
-    disc?: string;
-    communicationStyle?: string;
-    detailLevel?: string;
-    formality?: string;
-    learningStyle?: string;
-    leadershipStyle?: string;
+  behavior: {
+    communicationStyle: string;
+    detailLevel: string;
+    formality: string;
+    learningStyle: string;
+    decisionSupport: string;
+    leadershipProfile: string;
   };
   goals: {
-    primary?: string[];
-    currentProjects?: string;
-    desiredOutcomes?: string;
+    categories: string[];
+    mainProject: string;
+    currentProjects: string;
+    expectedSupport: string;
   };
   routine: {
-    workHours?: string;
-    studyHours?: string;
-    focusDays?: string[];
-    priorities?: string;
+    workHours: string;
+    studyHours: string;
+    activeDays: string[];
+    recurringPriorities: string;
   };
   tools: {
-    selected?: string[];
-    notes?: string;
+    selected: string[];
+    notes: string;
   };
-  skills: Record<string, number>;
-  aiPreferences: {
-    responseStyle?: string;
-    useTables?: boolean;
-    useMarkdown?: boolean;
-    citeSources?: boolean;
-    generateDocuments?: boolean;
-    avoidEmojis?: boolean;
-    tone?: string;
+  knowledge: Record<string, KnowledgeLevel>;
+  preferences: {
+    responseStyle: string;
+    tone: string;
+    askBeforeActing: boolean;
+    confirmCriticalActions: boolean;
+    useTables: boolean;
+    useMarkdown: boolean;
+    citeSources: boolean;
+    generateDocuments: boolean;
+    preferStepByStep: boolean;
+    directToCode: boolean;
+    avoidEmojis: boolean;
   };
 };
 
-export type ProfileEngineRow = {
-  personal: ProfileEngineData['personal'];
-  professional: ProfileEngineData['professional'];
-  behavioral: ProfileEngineData['behavioral'];
-  goals: ProfileEngineData['goals'];
-  routine: ProfileEngineData['routine'];
-  tools: ProfileEngineData['tools'];
-  skills: ProfileEngineData['skills'];
-  ai_preferences: ProfileEngineData['aiPreferences'];
-  user_context: Record<string, unknown>;
-  completion_percent: number;
+export type UserContext = {
+  identity: {
+    email: string;
+    fullName: string;
+    preferredName: string;
+    location: string | null;
+    language: string;
+    timezone: string;
+  };
+  professional: {
+    title: string;
+    company: string;
+    department: string;
+    area: string;
+    education: string;
+    experienceYears: string;
+    workMode: string;
+    linkedin: string | null;
+    github: string | null;
+    portfolio: string | null;
+  };
+  behavior: ProfileData['behavior'];
+  goals: ProfileData['goals'];
+  routine: ProfileData['routine'];
+  tools: ProfileData['tools'];
+  knowledge: Record<string, { level: KnowledgeLevel; label: string }>;
+  aiPreferences: ProfileData['preferences'];
+  promptInstruction: string;
 };
