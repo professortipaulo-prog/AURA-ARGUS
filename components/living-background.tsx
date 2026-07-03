@@ -1,14 +1,10 @@
-'use client';
-
-export function LivingBackground() {
+export function LivingBackground({ mode = 'argus' }: { mode?: 'aura' | 'argus' | 'auth' }) {
   return (
-    <div aria-hidden="true" className="living-bg">
-      <div className="binary-rain binary-rain-a" />
-      <div className="binary-rain binary-rain-b" />
+    <div className={`living-bg living-bg-${mode}`} aria-hidden="true">
       <div className="living-orb living-orb-a" />
       <div className="living-orb living-orb-b" />
+      <div className="living-binaries" />
       <div className="living-grid" />
-      <div className="living-wave" />
     </div>
   );
 }

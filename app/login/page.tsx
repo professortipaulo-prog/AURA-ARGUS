@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { normalizeLoginIdentifier } from '@/lib/auth/constants';
+import { LivingBackground } from '@/components/living-background';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,7 +23,6 @@ export default function LoginPage() {
 
     const supabase = createSupabaseBrowserClient();
     const email = normalizeLoginIdentifier(identifier);
-
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (loginError) {
@@ -44,7 +41,7 @@ export default function LoginPage() {
     }
 
     if (profileData?.warnings?.length) {
-      setWarning('Acesso liberado. Perfil será sincronizado quando o schema core estiver exposto no Supabase.');
+      setWarning('Acesso liberado. Perfil será sincronizado quando o banco estiver disponível.');
     }
 
     router.replace('/dashboard');
@@ -52,23 +49,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-10">
-      <Card className="w-full max-w-md">
-        <Link href="/" className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 font-black">A</div>
-          <div><p className="font-bold text-white">AURA / ARGUS</p><p className="text-xs text-slate-500">Acesso seguro</p></div>
+    <main className="auth-screen">
+      <LivingBackground mode="auth" />
+      <section className="auth-card">
+        <Link href="/" className="auth-brand" aria-label="Voltar para a página inicial">
+          <span className="auth-logo">⬡</span>
+          <span><strong>AURA / ARGUS</strong><small>Acesso seguro</small></span>
         </Link>
-        <h1 className="text-3xl font-bold text-white">Entrar</h1>
-        <p className="mt-2 text-sm text-slate-400">Acesse com suas credenciais cadastradas no AURA/ARGUS.</p>
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="E-mail ou usuário" required />
-          <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" placeholder="Senha" required />
-          {error ? <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200">{error}</div> : null}
-          {warning ? <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">{warning}</div> : null}
-          <Button className="w-full" type="submit" disabled={isLoading}>{isLoading ? 'Entrando...' : 'Entrar no painel'}</Button>
+        <h1>Entrar</h1>
+        <p>Acesse seu núcleo operacional de IA.</p>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="E-mail ou usuário" required />
+          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" placeholder="Senha" required />
+          {error ? <div className="auth-error">{error}</div> : null}
+          {warning ? <div className="auth-warning">{warning}</div> : null}
+          <button type="submit" disabled={isLoading}>{isLoading ? 'Entrando...' : 'Entrar no painel'}</button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500">Ainda nao tem conta? <Link href="/register" className="text-indigo-300">Criar acesso</Link></p>
-      </Card>
+        <p className="auth-footer">Ainda não tem conta? <Link href="/register">Criar acesso</Link></p>
+      </section>
     </main>
   );
 }
