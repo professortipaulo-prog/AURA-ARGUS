@@ -6,36 +6,42 @@ import { FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-
-const VALID_USERS = ['paulofilho', 'professortipaulo@gmail.com'];
-const VALID_PASSWORD = 'F1lho@tomo2026';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { normalizeLoginIdentifier } from '@/lib/auth/constants';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [login, setLogin] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedLogin = login.trim().toLowerCase();
+    setError(null);
+    setIsLoading(true);
 
-    if (!VALID_USERS.includes(normalizedLogin) || password !== VALID_PASSWORD) {
-      setError('Acesso nao autorizado. Use o administrador configurado para esta versao.');
+    const supabase = createSupabaseBrowserClient();
+    const email = normalizeLoginIdentifier(identifier);
+
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (loginError) {
+      setError(loginError.message === 'Invalid login credentials' ? 'Usuário/e-mail ou senha inválidos.' : loginError.message);
+      setIsLoading(false);
       return;
     }
 
-    window.localStorage.setItem(
-      'aura_argus_demo_session',
-      JSON.stringify({
-        user: 'paulofilho',
-        email: 'professortipaulo@gmail.com',
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-      })
-    );
+    const profileResponse = await fetch('/api/auth/profile', { method: 'POST' });
+    if (!profileResponse.ok) {
+      const data = await profileResponse.json().catch(() => null);
+      setError(data?.error ?? 'Login feito, mas não foi possível preparar o perfil.');
+      setIsLoading(false);
+      return;
+    }
 
-    router.push('/dashboard');
+    router.replace('/dashboard');
+    router.refresh();
   }
 
   return (
@@ -46,30 +52,13 @@ export default function LoginPage() {
           <div><p className="font-bold text-white">AURA / ARGUS</p><p className="text-xs text-slate-500">Acesso seguro</p></div>
         </Link>
         <h1 className="text-3xl font-bold text-white">Entrar</h1>
-        <p className="mt-2 text-sm text-slate-400">Acesso administrativo temporario ate ativarmos o Supabase Auth definitivo.</p>
+        <p className="mt-2 text-sm text-slate-400">Acesse com Supabase Auth. Também aceito o usuário admin provisório <strong className="text-slate-200">paulofilho</strong>.</p>
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <Input
-            type="text"
-            placeholder="Usuario ou e-mail"
-            value={login}
-            onChange={(event) => setLogin(event.target.value)}
-            autoComplete="username"
-          />
-          <Input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-          />
-          {error ? <p className="text-sm text-red-300">{error}</p> : null}
-          <Button type="submit" className="w-full">Entrar no painel</Button>
+          <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="E-mail ou usuário" required />
+          <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" placeholder="Senha" required />
+          {error ? <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200">{error}</div> : null}
+          <Button className="w-full" type="submit" disabled={isLoading}>{isLoading ? 'Entrando...' : 'Entrar no painel'}</Button>
         </form>
-        <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-xs leading-6 text-slate-400">
-          <p><strong className="text-cyan-200">Acesso demo admin:</strong></p>
-          <p>Usuario: <span className="text-white">paulofilho</span></p>
-          <p>E-mail: <span className="text-white">professortipaulo@gmail.com</span></p>
-        </div>
         <p className="mt-6 text-center text-sm text-slate-500">Ainda nao tem conta? <Link href="/register" className="text-indigo-300">Criar acesso</Link></p>
       </Card>
     </main>

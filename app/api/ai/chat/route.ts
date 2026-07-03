@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth/session';
 import { sendChat } from '@/lib/ai/ai-router';
 import { ProviderNotConfiguredError, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ ok: false, error: 'Acesso negado. Faça login para usar a IA.' }, { status: 401 });
+  }
+
   let body: Partial<ChatRequestBody>;
 
   try {

@@ -12,7 +12,12 @@ const items: Array<[string, string, string]> = [
   ['Admin', '/dashboard/admin', '◆']
 ];
 
-export function Sidebar() {
+type SidebarProps = {
+  displayName?: string | null;
+  role?: string | null;
+};
+
+export function Sidebar({ displayName, role }: SidebarProps) {
   return (
     <aside className="hidden min-h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/50 p-5 lg:block">
       <Link href="/" className="mb-8 block">
@@ -27,8 +32,14 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="mt-8 rounded-3xl border border-indigo-400/20 bg-indigo-400/10 p-4">
-        <p className="text-sm font-semibold text-indigo-100">Modo assistente</p>
-        <p className="mt-2 text-xs leading-5 text-slate-400">Microfone, memoria, documentos e acoes serao conectados nas proximas sprints.</p>
+        <p className="text-sm font-semibold text-indigo-100">Sessao ativa</p>
+        <p className="mt-2 truncate text-xs leading-5 text-slate-400">{displayName ?? 'Usuario autenticado'}</p>
+        <p className="mt-1 text-xs text-cyan-200">Perfil: {role ?? 'user'}</p>
+        <form action="/auth/sign-out" method="post" className="mt-4">
+          <button className="w-full rounded-2xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10" type="submit">
+            Sair
+          </button>
+        </form>
       </div>
     </aside>
   );
