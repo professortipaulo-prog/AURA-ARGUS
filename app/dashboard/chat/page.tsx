@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { Header } from '@/components/layout/header';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { LivingBackground } from '@/components/living-background';
 
 type Persona = 'aura' | 'argus';
@@ -82,6 +82,7 @@ export default function ChatPage() {
     { role: 'assistant', content: PERSONAS.aura.intro, persona: 'aura', time: now(), meta: PERSONAS.aura.meta }
   ]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const active = PERSONAS[persona];
   const provider = PERSONA_PROVIDER[persona];
@@ -96,6 +97,13 @@ export default function ChatPage() {
     if (!node) return;
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    const node = inputRef.current;
+    if (!node) return;
+    node.style.height = 'auto';
+    node.style.height = `${Math.min(node.scrollHeight, 150)}px`;
+  }, [input]);
 
   function switchPersona(next: Persona) {
     setPersona(next);
@@ -163,14 +171,23 @@ export default function ChatPage() {
   return (
     <>
       <LivingBackground persona={persona} />
-      <Header title="Chat IA" subtitle="Online" />
+      <header className="aios-header chat-top-header">
+        <div className="chat-title-block">
+          <p className="aios-kicker">AURA / ARGUS</p>
+          <h1>Chat IA</h1>
+          <p>Online</p>
+        </div>
+        <div className="chat-header-dock" aria-label="Selecionar assistente">
+          <AvatarDockCard persona="aura" active={persona === 'aura'} onClick={() => switchPersona('aura')} />
+          <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
+        </div>
+        <div className="aios-header-actions">
+          <span className="aios-status"><i />Online</span>
+          <ThemeToggle />
+        </div>
+      </header>
       <section className={`chat-os ${persona}`}>
         <div className="chat-shell-card">
-          <div className="chat-avatar-dock" aria-label="Selecionar assistente">
-            <AvatarDockCard persona="aura" active={persona === 'aura'} onClick={() => switchPersona('aura')} />
-            <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
-          </div>
-
           <div className="chat-stream" ref={scrollRef}>
             {messages.map((msg, index) => {
               const msgPersona = msg.persona ?? persona;
@@ -229,7 +246,8 @@ export default function ChatPage() {
             }}
           >
             <textarea
-              rows={2}
+              ref={inputRef}
+              rows={1}
               value={input}
               disabled={isSending}
               placeholder={active.placeholder}
