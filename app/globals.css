@@ -517,3 +517,111 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   .chat-avatar-dock { grid-template-columns: 1fr; }
   .chat-bubble { width: 100%; }
 }
+
+/* PATCH 034 — Landing PSF final + Chat composer comfort
+   Escopo: restaura a home com classes psfhome e ajusta apenas altura do campo do chat. */
+.psfhome-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #020713;
+  color: #f8fbff;
+  isolation: isolate;
+}
+.psfhome-bg { position: fixed; inset: 0; z-index: -3; overflow: hidden; background: radial-gradient(circle at 78% 18%, rgba(34,211,238,.18), transparent 34rem), radial-gradient(circle at 22% 42%, rgba(168,85,247,.22), transparent 34rem), linear-gradient(135deg, #020713 0%, #05101f 55%, #020713 100%); }
+.psfhome-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(34,211,238,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,.10) 1px, transparent 1px); background-size: 82px 82px; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); opacity: .35; }
+.psfhome-glow { position: absolute; width: 520px; height: 520px; border-radius: 999px; filter: blur(90px); opacity: .38; animation: psfFloat 18s ease-in-out infinite; }
+.psfhome-glow-a { left: -180px; top: 22%; background: rgba(168,85,247,.38); }
+.psfhome-glow-b { right: -180px; top: 18%; background: rgba(34,211,238,.30); animation-delay: -7s; }
+.psfhome-rain { position: absolute; inset: 0; overflow: hidden; opacity: .88; }
+.psfhome-rain span { position: absolute; top: -26%; width: 1.2em; color: rgba(34,211,238,.22); font-size: 22px; font-weight: 800; line-height: 1.12; letter-spacing: .16em; writing-mode: vertical-rl; text-orientation: upright; text-shadow: 0 0 16px rgba(34,211,238,.25); animation: psfRain linear infinite; }
+.psfhome-rain span:nth-child(3n) { color: rgba(168,85,247,.24); text-shadow: 0 0 18px rgba(168,85,247,.22); }
+.psfhome-rain span:nth-child(4n) { font-size: 17px; opacity: .35 !important; }
+.psfhome-rain span:nth-child(5n) { filter: blur(.4px); }
+.psfhome-header { position: sticky; top: 18px; z-index: 20; width: min(1520px, calc(100% - 48px)); margin: 24px auto 0; min-height: 104px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 18px 22px; border: 1px solid rgba(148,163,184,.18); border-radius: 30px; background: rgba(4, 10, 24, .78); backdrop-filter: blur(18px); box-shadow: 0 26px 90px rgba(0,0,0,.34), inset 0 0 50px rgba(255,255,255,.025); }
+.psfhome-brand { display: flex; align-items: center; gap: 16px; min-width: 280px; }
+.psfhome-mark { display: grid; place-items: center; width: 68px; height: 68px; flex: 0 0 auto; border-radius: 22px; border: 1px solid rgba(34,211,238,.42); background: linear-gradient(135deg, rgba(124,58,237,.26), rgba(34,211,238,.16)); color: #7dd3fc; font-size: 32px; box-shadow: 0 0 34px rgba(34,211,238,.16); }
+.psfhome-brand strong { display: block; font-size: 26px; line-height: 1; letter-spacing: .02em; background: linear-gradient(90deg, #a855f7, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.psfhome-brand small { display: block; margin-top: 8px; color: #9fb2cc; font-size: 14px; }
+.psfhome-nav { display: flex; align-items: center; justify-content: center; gap: 34px; color: #c7d4e8; font-weight: 800; }
+.psfhome-nav a { position: relative; opacity: .92; transition: .2s ease; }
+.psfhome-nav a:hover { color: #fff; opacity: 1; }
+.psfhome-nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 2px; border-radius: 999px; background: linear-gradient(90deg, #a855f7, #22d3ee); transform: scaleX(0); transform-origin: left; transition: .2s ease; }
+.psfhome-nav a:hover::after { transform: scaleX(1); }
+.psfhome-actions { display: flex; align-items: center; gap: 14px; }
+.psfhome-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 54px; padding: 0 28px; border-radius: 20px; border: 1px solid rgba(255,255,255,.12); color: #fff; font-weight: 950; letter-spacing: -.01em; transition: .22s ease; }
+.psfhome-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 56px rgba(34,211,238,.18); }
+.psfhome-btn-primary { border: 0; background: linear-gradient(135deg, #7c3aed 0%, #38bdf8 100%); box-shadow: 0 18px 54px rgba(56,189,248,.20); }
+.psfhome-btn-ghost, .psfhome-btn-glass { background: rgba(255,255,255,.045); backdrop-filter: blur(10px); }
+.psfhome-btn-large { min-height: 66px; padding: 0 38px; border-radius: 24px; font-size: 17px; }
+.psfhome-hero { width: min(1520px, calc(100% - 48px)); margin: 86px auto 0; display: grid; grid-template-columns: minmax(0, .95fr) minmax(360px, .72fr) minmax(320px, .55fr); gap: 34px; align-items: center; }
+.psfhome-copy { min-width: 0; }
+.psfhome-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 24px; color: #9fe8ff; text-transform: uppercase; letter-spacing: .28em; font-weight: 900; font-size: 13px; }
+.psfhome-eyebrow i { width: 12px; height: 12px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 22px #22c55e; }
+.psfhome-copy h1 { margin: 0; max-width: 760px; color: #fff; font-size: clamp(54px, 5.6vw, 108px); line-height: .92; letter-spacing: -.075em; font-weight: 800; }
+.psfhome-copy h1 span { background: linear-gradient(100deg, #38bdf8 0%, #8b5cf6 44%, #ec4899 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.psfhome-lead { max-width: 700px; margin: 28px 0 0; color: #cbd8ea; font-size: 20px; line-height: 1.75; }
+.psfhome-cta-row { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 34px; }
+.psfhome-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 42px; max-width: 740px; }
+.psfhome-mini-card { min-height: 165px; border: 1px solid rgba(148,163,184,.16); border-radius: 26px; background: linear-gradient(180deg, rgba(11,18,36,.68), rgba(5,11,26,.78)); padding: 24px; box-shadow: inset 0 0 44px rgba(255,255,255,.018), 0 24px 80px rgba(0,0,0,.22); }
+.psfhome-mini-card b { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; background: rgba(34,211,238,.13); color: #67e8f9; margin-bottom: 18px; }
+.psfhome-mini-card strong { display: block; color: #fff; font-size: 19px; }
+.psfhome-mini-card p { margin: 12px 0 0; color: #aebdd1; line-height: 1.55; }
+.psfhome-avatars { position: relative; min-height: 620px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: end; }
+.psfhome-avatar { position: relative; overflow: hidden; min-height: 520px; border: 1px solid rgba(148,163,184,.17); border-radius: 32px; background: linear-gradient(180deg, rgba(9,17,36,.60), rgba(3,8,20,.86)); padding: 20px 18px 28px; display: flex; flex-direction: column; justify-content: end; text-align: center; box-shadow: 0 30px 110px rgba(0,0,0,.30), inset 0 0 70px rgba(255,255,255,.02); }
+.psfhome-avatar::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--tone) 24%, transparent), transparent 26rem); opacity: .9; }
+.psfhome-avatar-aura { --tone: #a855f7; }
+.psfhome-avatar-argus { --tone: #22d3ee; }
+.psfhome-avatar-orbit { position: absolute; left: 50%; top: 44%; width: 280px; height: 280px; transform: translate(-50%, -50%); border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent); box-shadow: 0 0 60px color-mix(in srgb, var(--tone) 28%, transparent), inset 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); animation: psfOrbit 5.2s ease-in-out infinite; }
+.psfhome-avatar img { position: absolute; left: 50%; bottom: 120px; width: min(94%, 420px); height: 430px; object-fit: cover; object-position: center top; transform: translateX(-50%) scale(1.02); filter: drop-shadow(0 30px 60px rgba(0,0,0,.5)); animation: psfAvatarBreath 5.4s ease-in-out infinite; }
+.psfhome-avatar h2, .psfhome-avatar p, .psfhome-avatar small { position: relative; z-index: 1; }
+.psfhome-avatar h2 { margin: 0; color: color-mix(in srgb, var(--tone) 86%, #fff); font-size: 42px; letter-spacing: .02em; }
+.psfhome-avatar p { margin: 4px 0 0; color: #d7e7ff; font-size: 18px; }
+.psfhome-avatar small { display: block; margin: 12px auto 0; color: #c8d5e8; max-width: 300px; line-height: 1.55; }
+.psfhome-anagram, .psfhome-panel { border: 1px solid rgba(148,163,184,.16); border-radius: 32px; background: linear-gradient(180deg, rgba(8,16,34,.74), rgba(4,9,22,.86)); box-shadow: 0 30px 110px rgba(0,0,0,.28), inset 0 0 70px rgba(255,255,255,.02); backdrop-filter: blur(16px); }
+.psfhome-anagram { padding: 34px; text-align: center; align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+.psfhome-anagram span, .psfhome-panel > span { color: #c084fc; text-transform: uppercase; letter-spacing: .25em; font-weight: 950; }
+.psfhome-anagram h2 { margin: 26px 0 20px; color: #fff; font-size: 36px; font-weight: 500; }
+.psfhome-letters { display: flex; justify-content: center; gap: 10px; margin: 12px 0; }
+.psfhome-letters b { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 12px; border: 1px solid rgba(56,189,248,.32); background: rgba(255,255,255,.035); color: #7dd3fc; font-size: 28px; }
+.psfhome-letters:first-of-type b { color: #c084fc; border-color: rgba(168,85,247,.36); }
+.psfhome-swap { color: #38bdf8; font-size: 32px; line-height: 1; margin: 4px 0; }
+.psfhome-anagram p { color: #d4deef; line-height: 1.7; font-size: 16px; }
+.psfhome-section { width: min(1520px, calc(100% - 48px)); margin: 44px auto 0; display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; }
+.psfhome-panel { padding: 30px; }
+.psfhome-persona-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 24px; }
+.psfhome-persona-grid h3 { margin: 0; color: #fff; font-size: 24px; }
+.psfhome-persona-grid p { color: #c9d6e9; line-height: 1.7; }
+.psfhome-persona-grid small { color: #8fdcff; }
+.psfhome-module-list { display: grid; gap: 14px; margin-top: 24px; }
+.psfhome-module-list div { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.psfhome-module-list strong { color: #fff; }
+.psfhome-module-list small { color: #a8b8d0; text-align: right; }
+.psfhome-footer { width: min(1520px, calc(100% - 48px)); margin: 38px auto 0; padding: 28px 0 44px; color: #8ea4c2; display: flex; justify-content: space-between; gap: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+.psfhome-footer strong { color: #fff; }
+
+.chat-shell-card { max-width: 1360px; }
+.chat-composer-dock textarea { min-height: 118px; font-size: 17px; line-height: 1.55; padding: 24px 26px; }
+.chat-composer-dock button { min-height: 118px; }
+.chat-stream { padding-bottom: 24px; }
+
+@keyframes psfRain { from { transform: translateY(-20vh); } to { transform: translateY(132vh); } }
+@keyframes psfFloat { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(42px,-30px,0) scale(1.08); } }
+@keyframes psfOrbit { 0%,100% { transform: translate(-50%, -50%) scale(.96); opacity: .62; } 50% { transform: translate(-50%, -50%) scale(1.04); opacity: 1; } }
+@keyframes psfAvatarBreath { 0%,100% { transform: translateX(-50%) translateY(0) scale(1.02); } 50% { transform: translateX(-50%) translateY(-8px) scale(1.045); } }
+
+@media (max-width: 1320px) {
+  .psfhome-hero { grid-template-columns: 1fr; }
+  .psfhome-avatars { min-height: 560px; }
+  .psfhome-anagram { min-height: 420px; }
+}
+@media (max-width: 860px) {
+  .psfhome-header { position: relative; top: 0; width: min(100% - 28px, 1520px); flex-direction: column; align-items: stretch; }
+  .psfhome-brand { min-width: 0; }
+  .psfhome-nav, .psfhome-actions, .psfhome-cta-row { justify-content: flex-start; flex-wrap: wrap; }
+  .psfhome-hero, .psfhome-section, .psfhome-footer { width: min(100% - 28px, 1520px); }
+  .psfhome-copy h1 { font-size: clamp(46px, 14vw, 72px); }
+  .psfhome-card-grid, .psfhome-avatars, .psfhome-section, .psfhome-persona-grid { grid-template-columns: 1fr; }
+  .psfhome-avatar { min-height: 500px; }
+  .psfhome-footer { flex-direction: column; }
+}
