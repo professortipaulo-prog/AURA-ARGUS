@@ -861,3 +861,230 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 @media (max-width: 1024px) {
   .chat-shell-card { max-width: 100%; }
 }
+
+/* PATCH 038 — FINAL RESPONSIVE DENSITY
+   Ajuste fino para 1920x1080 em zoom 100%, mantendo o chat aprovado,
+   compactando as demais telas do dashboard e preservando Matrix/neon. */
+:root {
+  --aios-sidebar-w: clamp(244px, 14vw, 274px);
+  --aios-header-h: 76px;
+  --aios-page-pad-x: clamp(18px, 1.8vw, 30px);
+  --aios-page-pad-y: clamp(14px, 1.6vh, 20px);
+}
+
+.aios-main {
+  min-height: 100vh;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.aios-sidebar {
+  width: var(--aios-sidebar-w) !important;
+  padding: 18px 12px !important;
+  gap: 12px;
+}
+.aios-sidebar-brand { margin-bottom: 16px !important; }
+.aios-nav { gap: 5px !important; }
+.aios-nav-link {
+  min-height: 42px !important;
+  padding: 0 12px !important;
+  gap: 11px !important;
+  border-radius: 13px !important;
+  font-size: 13.5px !important;
+}
+.aios-nav-link span { width: 20px !important; height: 20px !important; font-size: 17px !important; }
+.aios-session-card {
+  padding: 13px !important;
+  border-radius: 18px !important;
+}
+.aios-user-avatar { width: 42px !important; height: 42px !important; font-size: 18px !important; }
+.aios-session-card strong { font-size: 13.5px !important; }
+.aios-session-card p { font-size: 11.5px !important; }
+.aios-session-card em { font-size: 11px !important; }
+.aios-session-card form { padding-top: 12px !important; }
+.aios-session-card button { min-height: 38px !important; border-radius: 12px !important; font-size: 13px !important; }
+
+.aios-header {
+  min-height: var(--aios-header-h) !important;
+  height: var(--aios-header-h) !important;
+  padding: 14px var(--aios-page-pad-x) !important;
+}
+.aios-header .aios-kicker { font-size: 10px !important; letter-spacing: .28em !important; margin-bottom: 3px !important; }
+.aios-header h1 { font-size: clamp(20px, 1.65vw, 25px) !important; }
+.aios-header p { margin-top: 5px !important; font-size: 12.5px !important; }
+.aios-status { height: 36px !important; padding: 0 14px !important; font-size: 13px !important; }
+.aios-theme-button { width: 38px !important; height: 38px !important; border-radius: 13px !important; }
+
+.aios-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 18vw, 320px) !important;
+  gap: 16px !important;
+  padding: var(--aios-page-pad-y) var(--aios-page-pad-x) 18px !important;
+}
+.aios-content-column,
+.aios-right-column { gap: 14px !important; }
+.aios-metrics-grid { gap: 10px !important; }
+.aios-metric {
+  min-height: 88px !important;
+  padding: 14px !important;
+  border-radius: 17px !important;
+}
+.aios-metric span { font-size: 10px !important; letter-spacing: .18em !important; }
+.aios-metric strong { margin-top: 7px !important; font-size: clamp(23px, 1.8vw, 30px) !important; }
+.aios-metric p { margin-top: 5px !important; font-size: 12px !important; line-height: 1.35 !important; }
+.aios-panel {
+  padding: 16px !important;
+  border-radius: 18px !important;
+}
+.aios-panel-grid { gap: 14px !important; }
+.aios-panel h2 { font-size: clamp(17px, 1.25vw, 21px) !important; }
+.aios-panel p { font-size: 13px !important; line-height: 1.48 !important; }
+.aios-panel-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; margin-bottom: 10px !important; }
+.aios-action-grid,
+.aios-project-grid { gap: 9px !important; margin-top: 14px !important; }
+.aios-action-grid a,
+.aios-project-grid div,
+.aios-project-grid .new-project,
+.quick-actions a,
+.context-panel a {
+  padding: 12px !important;
+  border-radius: 13px !important;
+  font-size: 13px !important;
+}
+.timeline p { margin: 12px 0 !important; font-size: 13px !important; }
+.context-panel p { margin: 12px 0 !important; }
+.context-panel span { margin-bottom: 4px !important; font-size: 10px !important; letter-spacing: .16em !important; }
+.context-panel .aios-avatar-card,
+.aios-right-column .aios-avatar-card.is-large { min-height: 360px !important; }
+.aios-avatar-card { padding: 18px !important; border-radius: 22px !important; }
+.aios-avatar-stage { width: min(220px, 80%) !important; height: 220px !important; }
+.aios-avatar-photo { width: 188px !important; height: 188px !important; }
+.aios-avatar-card h2 { font-size: 23px !important; }
+.aios-avatar-card p { font-size: 13px !important; }
+.aios-avatar-card small { font-size: 12px !important; }
+
+/* Compacta paginas internas que usam utilitários Tailwind no dashboard */
+.aios-main > section:not(.chat-os):not(.psfhome-shell) {
+  padding: var(--aios-page-pad-y) var(--aios-page-pad-x) 22px !important;
+}
+.aios-main > section:not(.chat-os) .rounded-3xl { border-radius: 20px !important; }
+.aios-main > section:not(.chat-os) .p-8,
+.aios-main > section:not(.chat-os) .lg\:p-8,
+.aios-main > section:not(.chat-os) .p-6 { padding: 18px !important; }
+.aios-main > section:not(.chat-os) .p-5 { padding: 14px !important; }
+.aios-main > section:not(.chat-os) .gap-6 { gap: 14px !important; }
+.aios-main > section:not(.chat-os) .gap-4 { gap: 12px !important; }
+.aios-main > section:not(.chat-os) .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 14px !important; }
+.aios-main > section:not(.chat-os) .mt-10 { margin-top: 22px !important; }
+.aios-main > section:not(.chat-os) .mt-8 { margin-top: 18px !important; }
+.aios-main > section:not(.chat-os) .mt-6 { margin-top: 14px !important; }
+.aios-main > section:not(.chat-os) .mt-5 { margin-top: 12px !important; }
+.aios-main > section:not(.chat-os) .mt-4 { margin-top: 10px !important; }
+.aios-main > section:not(.chat-os) .text-3xl { font-size: 1.55rem !important; line-height: 1.12 !important; }
+.aios-main > section:not(.chat-os) .text-2xl { font-size: 1.35rem !important; }
+.aios-main > section:not(.chat-os) .text-xl { font-size: 1.08rem !important; }
+.aios-main > section:not(.chat-os) input,
+.aios-main > section:not(.chat-os) select,
+.aios-main > section:not(.chat-os) textarea {
+  min-height: 42px !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+}
+.aios-main > section:not(.chat-os) textarea { min-height: 84px !important; }
+.aios-main > section:not(.chat-os) button { border-radius: 12px !important; }
+
+/* Chat aprovado, recalibrado para parecer o zoom 75% em 100% do navegador */
+.chat-os {
+  height: calc(100vh - var(--aios-header-h)) !important;
+  overflow: hidden !important;
+  padding: 16px clamp(20px, 2vw, 34px) 18px !important;
+}
+.chat-shell-card {
+  height: 100% !important;
+  max-width: min(1620px, calc(100vw - var(--aios-sidebar-w) - 54px)) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border-radius: 24px !important;
+}
+.chat-avatar-dock {
+  gap: 10px !important;
+  padding: 4px !important;
+  border-radius: 22px !important;
+}
+.chat-avatar-card {
+  min-height: 94px !important;
+  grid-template-columns: 92px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  padding: 12px 16px !important;
+  border-radius: 20px !important;
+}
+.chat-avatar-card::after { display: none !important; }
+.chat-avatar-photo {
+  width: 78px !important;
+  height: 78px !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--active-primary) 72%, transparent) !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 0 28px color-mix(in srgb, var(--active-primary) 26%, transparent) !important;
+}
+.chat-avatar-info strong { font-size: clamp(22px, 1.7vw, 31px) !important; }
+.chat-avatar-info small { font-size: 13px !important; }
+.chat-avatar-info em { font-size: 11px !important; }
+.chat-stream {
+  min-height: 0 !important;
+  gap: 12px !important;
+  padding: 8px 4px 10px !important;
+}
+.chat-bubble {
+  width: min(930px, 82%) !important;
+  padding: 16px 20px !important;
+  border-radius: 19px !important;
+  line-height: 1.52 !important;
+  font-size: 14px !important;
+}
+.chat-assistant header { margin-bottom: 8px !important; }
+.chat-assistant footer { margin-top: 10px !important; }
+.chat-composer-dock {
+  grid-template-columns: minmax(0, 1fr) 68px !important;
+  gap: 10px !important;
+  padding-top: 10px !important;
+}
+.chat-composer-dock textarea {
+  min-height: 50px !important;
+  height: auto;
+  max-height: 144px !important;
+  padding: 13px 16px !important;
+  border-radius: 18px !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  overflow-y: auto !important;
+}
+.chat-composer-dock button {
+  min-height: 50px !important;
+  border-radius: 18px !important;
+  font-size: 22px !important;
+}
+.chat-composer-dock span { font-size: 10.5px !important; }
+
+@media (min-width: 1700px) and (min-height: 900px) {
+  .aios-dashboard-grid { grid-template-columns: minmax(0, 1fr) 310px !important; }
+  .chat-shell-card { max-width: min(1600px, calc(100vw - var(--aios-sidebar-w) - 70px)) !important; }
+}
+
+@media (max-width: 1366px) {
+  :root { --aios-sidebar-w: 232px; --aios-header-h: 72px; }
+  .aios-dashboard-grid { grid-template-columns: 1fr !important; }
+  .aios-right-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chat-shell-card { max-width: calc(100vw - var(--aios-sidebar-w) - 34px) !important; }
+}
+
+@media (max-width: 980px) {
+  :root { --aios-sidebar-w: 0px; --aios-header-h: auto; }
+  .aios-sidebar { display: none !important; }
+  .aios-header { height: auto !important; min-height: 72px !important; }
+  .chat-os { height: auto !important; min-height: calc(100vh - 72px); overflow: visible !important; }
+  .chat-shell-card { max-width: 100% !important; height: min(820px, calc(100vh - 108px)) !important; }
+  .chat-avatar-dock { grid-template-columns: 1fr !important; }
+  .chat-avatar-card { min-height: 88px !important; }
+  .chat-bubble { width: 100% !important; }
+}

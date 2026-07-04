@@ -81,6 +81,7 @@ export default function ChatPage() {
     { role: 'assistant', content: PERSONAS.aura.intro, persona: 'aura', time: now(), meta: PERSONAS.aura.meta }
   ]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const active = PERSONAS[persona];
   const provider = PERSONA_PROVIDER[persona];
@@ -95,6 +96,13 @@ export default function ChatPage() {
     if (!node) return;
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    const node = textareaRef.current;
+    if (!node) return;
+    node.style.height = 'auto';
+    node.style.height = `${Math.min(node.scrollHeight, 144)}px`;
+  }, [input]);
 
   function switchPersona(next: Persona) {
     setPersona(next);
@@ -224,7 +232,8 @@ export default function ChatPage() {
             }}
           >
             <textarea
-              rows={2}
+              ref={textareaRef}
+              rows={1}
               value={input}
               disabled={isSending}
               placeholder={active.placeholder}
