@@ -26,7 +26,7 @@ const PERSONAS = {
     image: '/avatars/aura.webp',
     placeholder: 'Digite sua mensagem para AURA...',
     intro:
-      'Olá, Paulo. Sou a AURA, sua assistente estratégica. Posso ajudar com planejamento, escrita, documentos, organização e decisões com contexto.',
+      'AURA online. Pronta para compreender, organizar e orientar.',
     thinking: 'AURA está organizando a resposta...',
     meta: 'Estratégia · escrita · documentos · organização',
     system:
@@ -38,7 +38,7 @@ const PERSONAS = {
     image: '/avatars/argus.webp',
     placeholder: 'Digite sua solicitação para ARGUS...',
     intro:
-      'ARGUS online. Pronto para análise técnica, execução, automação, arquitetura, código e supervisão operacional.',
+      'ARGUS online. Pronto para analisar, supervisionar e executar.',
     thinking: 'ARGUS está analisando a execução...',
     meta: 'Execução · automação · arquitetura · análise técnica',
     system:

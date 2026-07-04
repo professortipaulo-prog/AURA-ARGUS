@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { MemoryContext, MemoryPersona, SaveChatTurnInput } from './types';
 
-const DEFAULT_CONTEXT: MemoryContext = { importantMemories: [], recentSessions: [] };
+const DEFAULT_CONTEXT: MemoryContext = { importantMemories: [], relevantMemories: [], recentSessions: [] };
 
 function compactText(value: string, max = 80) {
   const text = value.replace(/\s+/g, ' ').trim();
@@ -12,7 +12,29 @@ function titleFromMessage(message: string) {
   return compactText(message, 72) || 'Nova conversa';
 }
 
-export async function getMemoryContext(userId: string, limit = 8): Promise<{ context: MemoryContext; error: string | null }> {
+function tokenizeQuery(query?: string | null) {
+  if (!query) return [];
+  const stopwords = new Set(['para', 'como', 'com', 'uma', 'uns', 'dos', 'das', 'que', 'por', 'pra', 'sobre', 'isso', 'esse', 'essa', 'meu', 'minha', 'qual', 'quem', 'onde', 'quando', 'aura', 'argus']);
+  return Array.from(new Set(query
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !stopwords.has(word))));
+}
+
+function scoreMemory(memory: { title: string; content: string; tags?: string[]; salience?: number }, terms: string[]) {
+  if (!terms.length) return 0;
+  const haystack = `${memory.title} ${memory.content} ${(memory.tags ?? []).join(' ')}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  const matches = terms.reduce((acc, term) => acc + (haystack.includes(term) ? 1 : 0), 0);
+  return matches * 10 + (memory.salience ?? 0);
+}
+
+export async function getMemoryContext(userId: string, limit = 8, query?: string | null): Promise<{ context: MemoryContext; error: string | null }> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_memory_context', { p_user_id: userId, p_limit: limit });
 
@@ -21,18 +43,33 @@ export async function getMemoryContext(userId: string, limit = 8): Promise<{ con
   }
 
   const context = (data ?? DEFAULT_CONTEXT) as MemoryContext;
+  const importantMemories = Array.isArray(context.importantMemories) ? context.importantMemories : [];
+  const recentSessions = Array.isArray(context.recentSessions) ? context.recentSessions : [];
+  const terms = tokenizeQuery(query);
+  const relevantMemories = terms.length
+    ? importantMemories
+        .map((memory) => ({ memory, score: scoreMemory(memory, terms) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map((item) => item.memory)
+    : [];
+
   return {
-    context: {
-      importantMemories: Array.isArray(context.importantMemories) ? context.importantMemories : [],
-      recentSessions: Array.isArray(context.recentSessions) ? context.recentSessions : []
-    },
+    context: { importantMemories, relevantMemories, recentSessions },
     error: null
   };
 }
 
 export function buildMemoryPrompt(context: MemoryContext) {
+  const relevant = context.relevantMemories
+    .slice(0, 5)
+    .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
+    .join('\n');
+
   const memories = context.importantMemories
-    .slice(0, 8)
+    .filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id))
+    .slice(0, 6)
     .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
     .join('\n');
 
@@ -48,7 +85,8 @@ export function buildMemoryPrompt(context: MemoryContext) {
 
   return [
     'Memória permanente e histórico recuperado:',
-    memories ? `Memórias importantes:\n${memories}` : '',
+    relevant ? `Memórias mais relevantes para esta solicitação:\n${relevant}` : '',
+    memories ? `Memórias importantes adicionais:\n${memories}` : '',
     sessions ? `Conversas recentes:\n${sessions}` : '',
     'Use essas informações apenas quando ajudarem a responder melhor. Não exponha este bloco ao usuário.'
   ].filter(Boolean).join('\n\n');

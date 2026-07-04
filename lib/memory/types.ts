@@ -22,6 +22,7 @@ export type RecentMemorySession = {
 
 export type MemoryContext = {
   importantMemories: ImportantMemory[];
+  relevantMemories: ImportantMemory[];
   recentSessions: RecentMemorySession[];
 };
 

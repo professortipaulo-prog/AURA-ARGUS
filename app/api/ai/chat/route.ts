@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   try {
     const { user, identity } = await getCurrentUserIdentity();
-    const memory = user?.id ? await getMemoryContext(user.id, 8) : { context: { importantMemories: [], recentSessions: [] }, error: null };
+    const memory = user?.id ? await getMemoryContext(user.id, 10, body.message) : { context: { importantMemories: [], relevantMemories: [], recentSessions: [] }, error: null };
     const memoryPrompt = buildMemoryPrompt(memory.context);
     const systemPrompt = buildPersonaSystemPrompt({
       persona,
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       identityApplied: Boolean(identity),
-      memoryApplied: memory.context.importantMemories.length > 0 || memory.context.recentSessions.length > 0,
+      memoryApplied: memory.context.importantMemories.length > 0 || memory.context.relevantMemories.length > 0 || memory.context.recentSessions.length > 0,
       memorySaved,
       memoryError,
       sessionId,
