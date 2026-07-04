@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { Header } from '@/components/layout/header';
 import { LivingBackground } from '@/components/living-background';
 
 type Persona = 'aura' | 'argus';
@@ -61,7 +61,6 @@ function AvatarDockCard({ persona, active, onClick }: { persona: Persona; active
   const item = PERSONAS[persona];
   return (
     <button type="button" onClick={onClick} className={`chat-avatar-card ${persona} ${active ? 'is-active' : 'is-muted'}`}>
-      <span className="chat-avatar-orbit" />
       <span className="chat-avatar-photo">
         <Image src={item.image} alt={`Avatar ${item.label}`} fill sizes="160px" className="object-cover" priority={persona === 'aura'} />
       </span>
@@ -82,7 +81,6 @@ export default function ChatPage() {
     { role: 'assistant', content: PERSONAS.aura.intro, persona: 'aura', time: now(), meta: PERSONAS.aura.meta }
   ]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const active = PERSONAS[persona];
   const provider = PERSONA_PROVIDER[persona];
@@ -98,20 +96,9 @@ export default function ChatPage() {
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
   }, [messages, isSending]);
 
-  useEffect(() => {
-    const node = inputRef.current;
-    if (!node) return;
-    node.style.height = 'auto';
-    node.style.height = `${Math.min(node.scrollHeight, 150)}px`;
-  }, [input]);
-
   function switchPersona(next: Persona) {
     setPersona(next);
     setInput('');
-    setMessages((prev) => [
-      ...prev,
-      { role: 'assistant', content: PERSONAS[next].intro, persona: next, time: now(), meta: `${PERSONAS[next].label} ativa · ${PERSONAS[next].meta}` }
-    ]);
   }
 
   async function handleSend() {
@@ -171,23 +158,14 @@ export default function ChatPage() {
   return (
     <>
       <LivingBackground persona={persona} />
-      <header className="aios-header chat-top-header">
-        <div className="chat-title-block">
-          <p className="aios-kicker">AURA / ARGUS</p>
-          <h1>Chat IA</h1>
-          <p>Online</p>
-        </div>
-        <div className="chat-header-dock" aria-label="Selecionar assistente">
-          <AvatarDockCard persona="aura" active={persona === 'aura'} onClick={() => switchPersona('aura')} />
-          <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
-        </div>
-        <div className="aios-header-actions">
-          <span className="aios-status"><i />Online</span>
-          <ThemeToggle />
-        </div>
-      </header>
+      <Header title="Chat IA" subtitle="Online" />
       <section className={`chat-os ${persona}`}>
         <div className="chat-shell-card">
+          <div className="chat-avatar-dock" aria-label="Selecionar assistente">
+            <AvatarDockCard persona="aura" active={persona === 'aura'} onClick={() => switchPersona('aura')} />
+            <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
+          </div>
+
           <div className="chat-stream" ref={scrollRef}>
             {messages.map((msg, index) => {
               const msgPersona = msg.persona ?? persona;
@@ -246,8 +224,7 @@ export default function ChatPage() {
             }}
           >
             <textarea
-              ref={inputRef}
-              rows={1}
+              rows={2}
               value={input}
               disabled={isSending}
               placeholder={active.placeholder}

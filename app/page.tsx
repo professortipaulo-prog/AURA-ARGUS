@@ -12,6 +12,21 @@ const modules = [
   ['Memory Engine', 'Próxima camada de inteligência permanente'],
 ];
 
+const meanings = [
+  {
+    label: 'A.U.R.A.',
+    title: 'Assistente Universal de Raciocínio e Ação',
+    myth: 'Na tradição clássica, Aura representa a brisa, a presença sutil e a influência que envolve e conduz. No sistema, AURA é a inteligência que compreende o contexto antes de agir.',
+    role: 'Compreende, organiza, planeja, comunica e transforma informação em clareza para decisões e entregas.'
+  },
+  {
+    label: 'A.R.G.U.S.',
+    title: 'Assistente de Raciocínio, Gestão, Unificação e Supervisão',
+    myth: 'Inspirado em Argus Panoptes, o guardião de cem olhos da mitologia grega, símbolo de vigilância permanente, análise e proteção.',
+    role: 'Observa, analisa, integra, supervisiona e transforma estratégia em execução técnica e operacional.'
+  }
+];
+
 const rain = Array.from({ length: 34 }, (_, index) => ({
   left: `${(index * 7) % 100}%`,
   delay: `${-(index % 9) * 0.9}s`,
@@ -64,7 +79,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="psfhome-hero" id="assistentes">
+      <section className="psfhome-hero" id="aura-argus">
         <div className="psfhome-copy">
           <p className="psfhome-eyebrow"><i /> Núcleo de Inteligência Operacional</p>
           <h1>
@@ -90,19 +105,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="psfhome-avatars" aria-label="Avatares AURA e ARGUS">
+        <div className="psfhome-avatars" id="assistentes" aria-label="Avatares AURA e ARGUS">
           <div className="psfhome-avatar psfhome-avatar-aura">
             <span className="psfhome-avatar-orbit" />
             <img src="/avatars/aura.webp" alt="Avatar da AURA" />
             <h2>AURA</h2>
-            <p>Assistente Estratégica</p>
+            <p>Assistente Universal de Raciocínio e Ação</p>
             <small>Compreende, organiza e orienta.</small>
           </div>
           <div className="psfhome-avatar psfhome-avatar-argus">
             <span className="psfhome-avatar-orbit" />
             <img src="/avatars/argus.webp" alt="Avatar do ARGUS" />
             <h2>ARGUS</h2>
-            <p>Assistente Operacional</p>
+            <p>Assistente de Raciocínio, Gestão, Unificação e Supervisão</p>
             <small>Analisa, supervisiona e executa.</small>
           </div>
         </div>
@@ -117,8 +132,36 @@ export default function HomePage() {
           <div className="psfhome-letters" aria-hidden="true">
             <b>A</b><b>R</b><b>G</b><b>U</b><b>S</b>
           </div>
-          <p><strong>AURA</strong> compreende e organiza. <strong>ARGUS</strong> analisa e executa. Juntos, formam uma presença de IA completa.</p>
+          <div className="psfhome-anagram-definitions">
+            <p><strong>AURA:</strong> Assistente Universal de Raciocínio e Ação.</p>
+            <p><strong>ARGUS:</strong> Assistente de Raciocínio, Gestão, Unificação e Supervisão.</p>
+          </div>
+          <p className="psfhome-anagram-myth"><strong>AURA</strong> simboliza presença, percepção e orientação. <strong>ARGUS</strong>, inspirado em Argus Panoptes, representa vigilância, análise e supervisão. Juntos, unem compreensão estratégica e execução operacional.</p>
         </aside>
+      </section>
+
+      <section className="psfhome-meaning-section" aria-label="Significado de AURA e ARGUS">
+        <div className="psfhome-section-title">
+          <span>Identidade dos assistentes</span>
+          <h2>O significado de AURA e ARGUS</h2>
+          <p>Os nomes combinam acrônimo funcional, referência simbólica e papéis complementares dentro do sistema.</p>
+        </div>
+
+        <div className="psfhome-meaning-grid">
+          {meanings.map((item) => (
+            <article className="psfhome-meaning-card" key={item.label}>
+              <b>{item.label}</b>
+              <h3>{item.title}</h3>
+              <p>{item.myth}</p>
+              <small>{item.role}</small>
+            </article>
+          ))}
+        </div>
+
+        <div className="psfhome-philosophy-card">
+          <strong>AURA compreende. ARGUS executa.</strong>
+          <p>Uma transforma informação em clareza. O outro converte decisões em ação. Juntos, formam um núcleo de inteligência operacional para pessoas, projetos e organizações.</p>
+        </div>
       </section>
 
       <section className="psfhome-section" id="modulos">
