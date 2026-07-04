@@ -1,4 +1,4 @@
-const capabilities = [
+const pillars = [
   ['Inteligência Contextual', 'Perfil, identidade e preferências aplicadas ao atendimento.'],
   ['Análise Avançada', 'ARGUS observa, valida riscos, rotas e execução técnica.'],
   ['Execução Assistida', 'AURA organiza, orienta e transforma demandas em entregáveis.'],
@@ -14,93 +14,94 @@ const modules = [
 
 export default function HomePage() {
   return (
-    <main className="landing-aios">
-      <div className="landing-matrix" aria-hidden="true" />
-      <div className="landing-orb landing-orb-a" aria-hidden="true" />
-      <div className="landing-orb landing-orb-b" aria-hidden="true" />
+    <main className="psf-home-shell">
+      <div className="psf-matrix" aria-hidden="true" />
+      <div className="psf-glow psf-glow-a" aria-hidden="true" />
+      <div className="psf-glow psf-glow-b" aria-hidden="true" />
 
-      <header className="landing-header">
-        <a className="landing-brand" href="/">
-          <span className="landing-logo">◈</span>
+      <header className="psf-topbar">
+        <a className="psf-brand" href="#topo" aria-label="AURA ARGUS início">
+          <span className="psf-brand-mark">◈</span>
           <span>
             <strong>AURA / ARGUS</strong>
             <small>Assistentes Inteligentes</small>
           </span>
         </a>
-
-        <nav className="landing-nav" aria-label="Navegação principal">
+        <nav className="psf-nav" aria-label="Navegação principal">
           <a href="#assistentes">Assistentes</a>
           <a href="#modulos">Módulos</a>
           <a href="#recursos">Recursos</a>
         </nav>
-
-        <div className="landing-actions">
-          <a className="landing-ghost" href="/login">Entrar</a>
-          <a className="landing-primary" href="/register">Criar perfil</a>
+        <div className="psf-actions">
+          <a className="psf-btn psf-btn-ghost" href="/login">Entrar</a>
+          <a className="psf-btn psf-btn-primary" href="/register">Criar perfil</a>
         </div>
       </header>
 
-      <section className="landing-hero" id="assistentes">
-        <div className="landing-copy">
-          <p className="landing-eyebrow"><span /> Núcleo de Inteligência Operacional</p>
+      <section className="psf-hero" id="topo">
+        <div className="psf-copy">
+          <p className="psf-eyebrow"><span /> Núcleo de Inteligência Operacional</p>
           <h1>
-            Inteligência que vê, compreende<br />
-            e <em>impulsiona resultados.</em>
+            Inteligência que vê,<br />
+            compreende e <em>impulsiona resultados.</em>
           </h1>
-          <p className="landing-description">
+          <p className="psf-lead">
             AURA e ARGUS são assistentes de IA projetados para atuar como um núcleo estratégico de inteligência operacional, com presença humana, análise profunda e execução precisa.
           </p>
-
-          <div className="landing-cta-row">
-            <a className="landing-primary landing-large" href="/login">Acessar sistema</a>
-            <a className="landing-secondary landing-large" href="/register">Criar perfil inicial</a>
+          <div className="psf-cta-row">
+            <a className="psf-btn psf-btn-primary psf-btn-large" href="/login">Acessar sistema</a>
+            <a className="psf-btn psf-btn-outline psf-btn-large" href="/register">Criar perfil inicial</a>
           </div>
-
-          <div className="landing-capabilities">
-            {capabilities.map(([title, description]) => (
-              <div className="landing-capability" key={title}>
-                <span>✦</span>
-                <strong>{title}</strong>
-                <small>{description}</small>
-              </div>
-            ))}
+          <div className="psf-pill-row" aria-label="Status do sistema">
+            <span>● Online</span>
+            <span>Supabase ativo</span>
+            <span>Claude + Gemini</span>
           </div>
         </div>
 
-        <div className="landing-stage" aria-label="Avatares AURA e ARGUS">
-          <img src="/avatars/aura-argus-hero.png" alt="AURA e ARGUS, assistentes digitais afrodescendentes" />
-          <div className="landing-avatar-name aura">
-            <strong>AURA</strong>
-            <span>Assistente Estratégica</span>
-            <small>Empatia, organização e clareza.</small>
-          </div>
-          <div className="landing-avatar-name argus">
-            <strong>ARGUS</strong>
-            <span>Assistente Operacional</span>
-            <small>Análise, vigilância e execução.</small>
-          </div>
+        <div className="psf-stage" id="assistentes">
+          <article className="psf-avatar-card psf-aura-card">
+            <div className="psf-avatar-ring">
+              <img src="/avatars/aura.webp" alt="Avatar da AURA" />
+            </div>
+            <h2>AURA</h2>
+            <p>Assistente Estratégica</p>
+            <small>Compreende, organiza, orienta e transforma contexto em clareza.</small>
+          </article>
+          <article className="psf-avatar-card psf-argus-card">
+            <div className="psf-avatar-ring">
+              <img src="/avatars/argus.webp" alt="Avatar do ARGUS" />
+            </div>
+            <h2>ARGUS</h2>
+            <p>Assistente Operacional</p>
+            <small>Analisa, supervisiona, valida riscos e transforma intenção em execução.</small>
+          </article>
         </div>
 
-        <aside className="landing-anagram">
+        <aside className="psf-anagram" aria-label="Anagrama AURA ARGUS">
           <span>Anagrama</span>
           <h2>AURA / ARGUS</h2>
-          <div className="landing-letters" aria-hidden="true">
-            <b>A</b><b>U</b><b>R</b><b>A</b>
-          </div>
-          <div className="landing-swap">⇄</div>
-          <div className="landing-letters" aria-hidden="true">
-            <b>A</b><b>R</b><b>G</b><b>U</b><b>S</b>
-          </div>
-          <p>
-            AURA compreende e organiza. ARGUS analisa e executa. Juntos, formam uma presença de IA completa.
-          </p>
+          <div className="psf-letter-row"><b>A</b><b>U</b><b>R</b><b>A</b></div>
+          <div className="psf-swap">⇄</div>
+          <div className="psf-letter-row"><b>A</b><b>R</b><b>G</b><b>U</b><b>S</b></div>
+          <p><strong>AURA</strong> compreende e organiza. <strong>ARGUS</strong> analisa e executa. Juntos, formam uma presença de IA completa.</p>
         </aside>
       </section>
 
-      <section className="landing-panel-row" id="modulos">
-        <article className="landing-panel wide">
-          <span className="landing-section-tag">Personalidades complementares</span>
-          <div className="landing-persona-grid">
+      <section className="psf-info-grid" id="recursos">
+        {pillars.map(([title, description]) => (
+          <article className="psf-feature-card" key={title}>
+            <span>✦</span>
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="psf-section-grid" id="modulos">
+        <article className="psf-panel psf-panel-wide">
+          <p className="psf-section-tag">Personalidades complementares</p>
+          <div className="psf-duo-grid">
             <div>
               <h3>AURA</h3>
               <p>Presença estratégica, consultiva e organizadora. Traduz contexto em clareza, planejamento e comunicação.</p>
@@ -114,9 +115,9 @@ export default function HomePage() {
           </div>
         </article>
 
-        <article className="landing-panel" id="recursos">
-          <span className="landing-section-tag">Módulos ativos</span>
-          <div className="landing-module-list">
+        <article className="psf-panel">
+          <p className="psf-section-tag">Módulos ativos</p>
+          <div className="psf-module-list">
             {modules.map(([title, description]) => (
               <div key={title}>
                 <strong>{title}</strong>
@@ -127,7 +128,7 @@ export default function HomePage() {
         </article>
       </section>
 
-      <footer className="landing-footer">
+      <footer className="psf-footer">
         <strong>AURA / ARGUS</strong>
         <span>AI Operating System · PSF Editora e Consultoria</span>
       </footer>
