@@ -23,7 +23,7 @@ export function LivingBackground({ persona = 'argus' }: LivingBackgroundProps) {
     let width = 0;
     let height = 0;
     let columns: number[] = [];
-    const fontSize = 18;
+    const fontSize = 13;
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -41,15 +41,15 @@ export function LivingBackground({ persona = 'argus' }: LivingBackgroundProps) {
     function draw() {
       frame += 1;
       const isAura = persona === 'aura';
-      ctx.fillStyle = isAura ? 'rgba(11, 5, 24, 0.14)' : 'rgba(2, 7, 16, 0.16)';
+      ctx.fillStyle = isAura ? 'rgba(11, 5, 24, 0.11)' : 'rgba(2, 7, 16, 0.12)';
       ctx.fillRect(0, 0, width, height);
       ctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textAlign = 'center';
-      ctx.shadowBlur = isAura ? 12 : 16;
+      ctx.shadowBlur = isAura ? 8 : 10;
       ctx.shadowColor = isAura ? 'rgba(174, 68, 255, .5)' : 'rgba(34, 211, 238, .55)';
 
-      const primary = isAura ? 'rgba(213, 92, 255, .34)' : 'rgba(34, 211, 238, .34)';
-      const secondary = isAura ? 'rgba(255, 69, 184, .18)' : 'rgba(14, 165, 233, .18)';
+      const primary = isAura ? 'rgba(213, 92, 255, .22)' : 'rgba(34, 211, 238, .24)';
+      const secondary = isAura ? 'rgba(255, 69, 184, .13)' : 'rgba(14, 165, 233, .13)';
 
       columns.forEach((y, index) => {
         if (index % 3 === 0 || frame % 2 === 0) {
@@ -57,7 +57,7 @@ export function LivingBackground({ persona = 'argus' }: LivingBackgroundProps) {
           ctx.fillStyle = index % 7 === 0 ? secondary : primary;
           ctx.fillText(char, index * fontSize + fontSize / 2, y);
         }
-        columns[index] = y > height + Math.random() * 1500 ? 0 : y + fontSize * (0.36 + Math.random() * 0.42);
+        columns[index] = y > height + Math.random() * 900 ? 0 : y + fontSize * (0.9 + Math.random() * 0.8);
       });
 
       ctx.shadowBlur = 0;

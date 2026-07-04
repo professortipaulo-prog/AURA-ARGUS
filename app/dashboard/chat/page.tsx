@@ -85,13 +85,13 @@ export default function ChatPage() {
     setIsSending(true);
     setAvatarState('thinking');
 
-    const contextualMessage = `${createSystemPrompt(persona)}\n\nMensagem do usuário:\n${text}`;
+    const systemPrompt = createSystemPrompt(persona);
 
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: contextualMessage, provider })
+        body: JSON.stringify({ message: text, provider, persona, systemPrompt })
       });
       const data = await response.json();
 
