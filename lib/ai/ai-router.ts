@@ -1,12 +1,11 @@
 /**
- * AI Router real com AI Provider Manager.
- * Não usa mais nomes de modelos fixos. Quando DEFAULT_AI_MODEL ou
- * GEMINI_DEFAULT_MODEL estiverem como "auto", o sistema consulta os
- * modelos disponíveis na conta e escolhe um modelo compatível.
+ * AI Router com decisão automática, fallback e metadados de roteamento.
+ * Mantém o AI Provider Manager: modelos continuam resolvidos por descoberta.
  */
 import { anthropicProvider } from './providers/anthropic';
 import { geminiProvider } from './providers/gemini';
 import { listAllModels, resolveProviderModel } from './model-discovery';
+import { decideAIRoute, getRouterPolicySummary } from './router-policy';
 import {
   ProviderNotConfiguredError,
   type AIProviderAdapter,
@@ -63,8 +62,28 @@ export async function getStatus(): Promise<AIStatusResponse> {
   };
 }
 
+export async function getRouterDiagnostics() {
+  const [status, inventory] = await Promise.all([getStatus(), listAllModels(false)]);
+  return {
+    policy: getRouterPolicySummary(),
+    status,
+    inventory
+  };
+}
+
 export async function getModelInventory(forceRefresh = false) {
   return listAllModels(forceRefresh);
+}
+
+async function sendWithProvider(provider: AIProviderAdapter, body: ChatRequestBody): Promise<{ model: string; response: string }> {
+  if (!provider.isConfigured()) {
+    throw new ProviderNotConfiguredError(provider.id);
+  }
+
+  const requestedModel = body.model || provider.defaultModel;
+  const resolvedModel = await resolveProviderModel(provider.id, requestedModel);
+  const response = await provider.send(body.message, resolvedModel, body.systemPrompt);
+  return { model: resolvedModel, response };
 }
 
 export async function sendChat(body: ChatRequestBody): Promise<ChatResponseBody> {
@@ -72,27 +91,42 @@ export async function sendChat(body: ChatRequestBody): Promise<ChatResponseBody>
     throw new Error('O campo "message" é obrigatório.');
   }
 
-  const provider = resolveProvider(body.provider);
+  const route = decideAIRoute({
+    message: body.message,
+    persona: body.persona,
+    provider: body.provider,
+    model: body.model
+  });
 
-  if (!provider.isConfigured()) {
-    throw new ProviderNotConfiguredError(provider.id);
-  }
-
-  const requestedModel = body.model || provider.defaultModel;
-  const resolvedModel = await resolveProviderModel(provider.id, requestedModel);
+  const primaryProvider = resolveProvider(route.provider);
 
   try {
-    const response = await provider.send(body.message, resolvedModel, body.systemPrompt);
-    return { provider: provider.id, model: resolvedModel, response };
+    const result = await sendWithProvider(primaryProvider, body);
+    return {
+      provider: primaryProvider.id,
+      model: result.model,
+      response: result.response,
+      route,
+      fallbackUsed: false,
+      fallbackFrom: null
+    };
   } catch (primaryError) {
-    const fallbackProvider = provider.id === 'anthropic' ? geminiProvider : anthropicProvider;
-    if (fallbackProvider.isConfigured()) {
+    const fallbackId = route.fallbackOrder.find((providerId) => providerId !== primaryProvider.id);
+    const fallbackProvider = fallbackId ? resolveProvider(fallbackId) : null;
+
+    if (fallbackProvider?.isConfigured()) {
       try {
-        const fallbackModel = await resolveProviderModel(fallbackProvider.id, fallbackProvider.defaultModel);
-        const response = await fallbackProvider.send(body.message, fallbackModel, body.systemPrompt);
-        return { provider: fallbackProvider.id, model: fallbackModel, response };
+        const result = await sendWithProvider(fallbackProvider, { ...body, provider: fallbackProvider.id, model: undefined });
+        return {
+          provider: fallbackProvider.id,
+          model: result.model,
+          response: result.response,
+          route,
+          fallbackUsed: true,
+          fallbackFrom: primaryProvider.id
+        };
       } catch {
-        // Retorna o erro primário abaixo.
+        // Retorna o erro primário abaixo para preservar a causa mais provável.
       }
     }
 

@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       memoryPrompt,
       extraSystemPrompt: body.systemPrompt
     });
-    const result = await sendChat({ message: body.message, provider, model: body.model, systemPrompt });
+    const result = await sendChat({ message: body.message, provider, model: body.model, persona, systemPrompt });
 
     let sessionId = body.sessionId ?? null;
     let memorySaved = false;
@@ -87,7 +87,10 @@ export async function POST(request: Request) {
       memorySaved,
       memoryError,
       sessionId,
-      persona: persona === 'argus' ? 'ARGUS' : 'AURA'
+      persona: persona === 'argus' ? 'ARGUS' : 'AURA',
+      route: result.route,
+      fallbackUsed: result.fallbackUsed ?? false,
+      fallbackFrom: result.fallbackFrom ?? null
     });
   } catch (error) {
     if (error instanceof ProviderNotConfiguredError) {

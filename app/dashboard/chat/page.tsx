@@ -14,11 +14,6 @@ type ChatMessage = {
   time?: string;
 };
 
-const PERSONA_PROVIDER: Record<Persona, 'anthropic' | 'gemini'> = {
-  aura: 'anthropic',
-  argus: 'gemini'
-};
-
 const PERSONAS = {
   aura: {
     label: 'AURA',
@@ -85,8 +80,6 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const active = PERSONAS[persona];
-  const provider = PERSONA_PROVIDER[persona];
-
   useEffect(() => {
     document.documentElement.dataset.assistantTheme = persona;
     window.localStorage.setItem('aura-argus-mode', persona);
@@ -115,7 +108,6 @@ export default function ChatPage() {
     if (!text || isSending) return;
 
     const selectedPersona = persona;
-    const selectedProvider = PERSONA_PROVIDER[selectedPersona];
     const selectedMeta = PERSONAS[selectedPersona];
 
     setMessages((prev) => [...prev, { role: 'user', content: text, persona: selectedPersona, time: now() }]);
@@ -128,7 +120,6 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          provider: selectedProvider,
           persona: selectedPersona,
           systemPrompt: buildSystemPrompt(selectedPersona),
           sessionId
@@ -155,7 +146,7 @@ export default function ChatPage() {
           role: 'assistant',
           content: data.response,
           persona: selectedPersona,
-          meta: `${selectedMeta.label} · ${data.provider ?? selectedProvider} · ${data.model ?? 'modelo automático'}`,
+          meta: `${selectedMeta.label} · ${data.provider ?? 'router'} · ${data.model ?? 'modelo automático'}${data.fallbackUsed ? ' · fallback' : ''}`,
           time: now()
         }
       ]);
