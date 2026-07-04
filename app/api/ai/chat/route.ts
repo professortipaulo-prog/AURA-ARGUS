@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendChat } from '@/lib/ai/ai-router';
 import { getCurrentUserIdentity } from '@/lib/identity/server';
+import { buildMemoryPrompt, getMemoryContext, saveChatTurn } from '@/lib/memory/server';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 function friendlyAIError(error: unknown) {
@@ -39,8 +40,12 @@ function personaBasePrompt(persona: AIPersonaId) {
   ].join(' ');
 }
 
-function combinePrompts(base: string, identityPrompt?: string) {
-  return [base, identityPrompt ? `Contexto do perfil inteligente do usuário: ${identityPrompt}` : 'Perfil inteligente ainda não disponível ou incompleto.'].join('\n\n');
+function combinePrompts(base: string, identityPrompt?: string, memoryPrompt?: string) {
+  return [
+    base,
+    identityPrompt ? `Contexto do perfil inteligente do usuário: ${identityPrompt}` : 'Perfil inteligente ainda não disponível ou incompleto.',
+    memoryPrompt || 'Memória permanente ainda não carregada.'
+  ].join('\n\n');
 }
 
 export async function POST(request: Request) {
@@ -67,14 +72,42 @@ export async function POST(request: Request) {
   const persona = normalizePersona(body.persona);
 
   try {
-    const { identity } = await getCurrentUserIdentity();
+    const { user, identity } = await getCurrentUserIdentity();
     const identityPrompt = identity ? (persona === 'argus' ? identity.argusInstruction : identity.auraInstruction) : undefined;
-    const systemPrompt = combinePrompts(personaBasePrompt(persona), body.systemPrompt || identityPrompt);
+    const memory = user?.id ? await getMemoryContext(user.id, 8) : { context: { importantMemories: [], recentSessions: [] }, error: null };
+    const memoryPrompt = buildMemoryPrompt(memory.context);
+    const systemPrompt = combinePrompts(personaBasePrompt(persona), body.systemPrompt || identityPrompt, memoryPrompt);
     const result = await sendChat({ message: body.message, provider, model: body.model, systemPrompt });
+
+    let sessionId = body.sessionId ?? null;
+    let memorySaved = false;
+    let memoryError: string | null = null;
+
+    if (user?.id) {
+      try {
+        const saved = await saveChatTurn({
+          userId: user.id,
+          sessionId,
+          persona,
+          userMessage: body.message,
+          assistantMessage: result.response,
+          provider: result.provider,
+          model: result.model
+        });
+        sessionId = saved.sessionId;
+        memorySaved = true;
+      } catch (err) {
+        memoryError = err instanceof Error ? err.message : 'Não foi possível salvar a memória da conversa.';
+      }
+    }
 
     return NextResponse.json({
       ...result,
       identityApplied: Boolean(identityPrompt),
+      memoryApplied: memory.context.importantMemories.length > 0 || memory.context.recentSessions.length > 0,
+      memorySaved,
+      memoryError,
+      sessionId,
       persona: persona === 'argus' ? 'ARGUS' : 'AURA'
     });
   } catch (error) {

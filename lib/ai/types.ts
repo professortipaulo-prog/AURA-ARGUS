@@ -7,6 +7,7 @@ export interface ChatRequestBody {
   model?: string;
   systemPrompt?: string;
   persona?: AIPersonaId;
+  sessionId?: string | null;
 }
 
 export interface ChatResponseBody {

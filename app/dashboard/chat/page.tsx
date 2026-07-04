@@ -77,6 +77,7 @@ export default function ChatPage() {
   const [persona, setPersona] = useState<Persona>('aura');
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: PERSONAS.aura.intro, persona: 'aura', time: now(), meta: PERSONAS.aura.meta }
   ]);
@@ -129,7 +130,8 @@ export default function ChatPage() {
           message: text,
           provider: selectedProvider,
           persona: selectedPersona,
-          systemPrompt: buildSystemPrompt(selectedPersona)
+          systemPrompt: buildSystemPrompt(selectedPersona),
+          sessionId
         })
       });
 
@@ -141,6 +143,10 @@ export default function ChatPage() {
           { role: 'error', content: data.error ?? 'Erro desconhecido ao chamar a IA.', persona: selectedPersona, time: now() }
         ]);
         return;
+      }
+
+      if (data.sessionId && typeof data.sessionId === 'string') {
+        setSessionId(data.sessionId);
       }
 
       setMessages((prev) => [
