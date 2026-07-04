@@ -8,6 +8,7 @@ export type ImportantMemory = {
   content: string;
   salience: number;
   tags: string[];
+  projectId?: string | null;
   updatedAt?: string;
 };
 
@@ -18,9 +19,21 @@ export type RecentMemorySession = {
   messageCount: number;
   lastPersona: MemoryPersona | null;
   lastMessageAt: string | null;
+  projectId?: string | null;
 };
 
+export type ProjectMemoryInfo = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  memoryCount?: number;
+  sessionCount?: number;
+} | null;
+
 export type MemoryContext = {
+  project: ProjectMemoryInfo;
+  projectMemories: ImportantMemory[];
   importantMemories: ImportantMemory[];
   relevantMemories: ImportantMemory[];
   recentSessions: RecentMemorySession[];
@@ -29,6 +42,7 @@ export type MemoryContext = {
 export type SaveChatTurnInput = {
   userId: string;
   sessionId?: string | null;
+  projectId?: string | null;
   persona: MemoryPersona;
   userMessage: string;
   assistantMessage: string;

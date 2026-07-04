@@ -48,7 +48,9 @@ export async function POST(request: Request) {
 
   try {
     const { user, identity } = await getCurrentUserIdentity();
-    const memory = user?.id ? await getMemoryContext(user.id, 10, body.message) : { context: { importantMemories: [], relevantMemories: [], recentSessions: [] }, error: null };
+    const projectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
+    const emptyMemoryContext = { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] };
+    const memory = user?.id ? await getMemoryContext(user.id, 10, body.message, projectId) : { context: emptyMemoryContext, error: null };
     const memoryPrompt = buildMemoryPrompt(memory.context);
     const systemPrompt = buildPersonaSystemPrompt({
       persona,
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
         const saved = await saveChatTurn({
           userId: user.id,
           sessionId,
+          projectId,
           persona,
           userMessage: body.message,
           assistantMessage: result.response,
@@ -83,7 +86,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       identityApplied: Boolean(identity),
-      memoryApplied: memory.context.importantMemories.length > 0 || memory.context.relevantMemories.length > 0 || memory.context.recentSessions.length > 0,
+      projectId,
+      project: memory.context.project,
+      memoryApplied: memory.context.projectMemories.length > 0 || memory.context.importantMemories.length > 0 || memory.context.relevantMemories.length > 0 || memory.context.recentSessions.length > 0,
       memorySaved,
       memoryError,
       sessionId,

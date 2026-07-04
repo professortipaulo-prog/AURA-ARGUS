@@ -10,6 +10,7 @@ export interface ChatRequestBody {
   systemPrompt?: string;
   persona?: AIPersonaId;
   sessionId?: string | null;
+  projectId?: string | null;
 }
 
 export interface ChatResponseBody {
