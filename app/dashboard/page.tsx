@@ -3,18 +3,18 @@ import { Header } from '@/components/layout/header';
 import { AvatarPanel } from '@/components/avatar-panel';
 
 const metrics = [
-  ['Status', 'Online', 'Sistema operacional ativo'],
-  ['Perfil', 'Ativo', 'Identidade aplicada'],
+  ['Status', 'Live', 'Sistema online'],
+  ['Banco', 'RLS', 'Supabase seguro'],
   ['IA', 'Auto', 'Modelos dinâmicos'],
-  ['Memória', 'Preparada', 'Próxima etapa']
+  ['Perfil', 'Ativo', 'Contexto aplicado']
 ];
 
-const timeline = ['Banco Supabase configurado', 'Profile Engine ativo', 'Identity Engine aplicado', 'Interface AI OS em implantação'];
+const timeline = ['Supabase configurado', 'Buckets e policies criados', 'Deploy Vercel publicado', 'Profile Engine ativo', 'Identity Engine iniciado'];
 
 export default function DashboardPage() {
   return (
     <>
-      <Header title="Central de Operações" subtitle="AURA/ARGUS Professional AI OS" />
+      <Header title="Central de Operações" subtitle="Núcleo operacional do AURA/ARGUS." />
       <section className="aios-dashboard-grid">
         <div className="aios-content-column">
           <div className="aios-metrics-grid">
@@ -31,19 +31,23 @@ export default function DashboardPage() {
             <article className="aios-panel featured">
               <span className="aios-panel-icon">⬡</span>
               <h2>Central AURA/ARGUS</h2>
-              <p>Ambiente operacional para conversar com AURA e ARGUS, organizar projetos, trabalhar com documentos e preparar memória contextual.</p>
+              <p>Interface operacional para chat, memória, projetos, documentos, agentes e administração.</p>
               <div className="aios-action-grid">
                 <Link href="/dashboard/chat">Conversar com IA</Link>
-                <Link href="/dashboard/profile">Ver perfil</Link>
-                <Link href="/dashboard/projects">Projetos</Link>
-                <Link href="/dashboard/documents">Documentos</Link>
+                <Link href="/dashboard/projects">Criar projeto</Link>
+                <Link href="/dashboard/documents">Enviar documento</Link>
+                <Link href="/dashboard/agents">Configurar agente</Link>
               </div>
             </article>
 
             <article className="aios-panel timeline">
               <span className="aios-panel-icon">◷</span>
               <h2>Linha do tempo</h2>
-              <div>{timeline.map((item) => <p key={item}><i />{item}</p>)}</div>
+              <div>
+                {timeline.map((item) => (
+                  <p key={item}><i />{item}</p>
+                ))}
+              </div>
             </article>
           </div>
 
@@ -54,7 +58,11 @@ export default function DashboardPage() {
             </div>
             <div className="aios-project-grid">
               {['AcadêmicoFácil', 'Hub Agentes IA', 'PSF Editora'].map((project) => (
-                <div key={project}><span>▣</span><strong>{project}</strong><p>Atualizado recentemente</p></div>
+                <div key={project}>
+                  <span>▣</span>
+                  <strong>{project}</strong>
+                  <p>Atualizado recentemente</p>
+                </div>
               ))}
               <Link href="/dashboard/projects" className="new-project">+ Novo projeto</Link>
             </div>
@@ -66,9 +74,9 @@ export default function DashboardPage() {
           <article className="aios-panel context-panel">
             <h2>Contexto ativo</h2>
             <p><span>Projeto atual</span>AURA/ARGUS</p>
-            <p><span>Identidade</span>Perfil inteligente aplicado</p>
+            <p><span>Memória</span>Perfil inteligente aplicado</p>
             <p><span>Modelo ativo</span>Seleção automática</p>
-            <p><span>Ambiente</span>Professional AI OS</p>
+            <p><span>Ferramentas</span>Preparadas para integração</p>
             <Link href="/dashboard/profile">Ver perfil completo →</Link>
           </article>
         </aside>
