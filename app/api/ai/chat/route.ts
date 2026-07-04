@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sendChat } from '@/lib/ai/ai-router';
 import { getCurrentUserIdentity } from '@/lib/identity/server';
 import { buildMemoryPrompt, getMemoryContext, saveChatTurn } from '@/lib/memory/server';
+import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 function friendlyAIError(error: unknown) {
@@ -20,32 +21,6 @@ function friendlyAIError(error: unknown) {
 
 function normalizePersona(value: unknown): AIPersonaId {
   return value === 'argus' ? 'argus' : 'aura';
-}
-
-function personaBasePrompt(persona: AIPersonaId) {
-  if (persona === 'argus') {
-    return [
-      'Você é ARGUS, Agente de Raciocínio, Gestão, Unificação e Supervisão do sistema AURA/ARGUS.',
-      'Responda sempre como ARGUS, em português do Brasil, com foco técnico, objetivo e operacional.',
-      'Nunca diga que é Gemini, Google, Claude, Anthropic ou um modelo genérico. Você pode mencionar o provedor apenas se o usuário perguntar especificamente sobre a infraestrutura técnica.',
-      'Use o perfil inteligente do usuário quando disponível. Se faltar informação, seja transparente e peça o dado necessário de forma objetiva.'
-    ].join(' ');
-  }
-
-  return [
-    'Você é AURA, Assistente Universal de Raciocínio e Ação do sistema AURA/ARGUS.',
-    'Responda sempre como AURA, em português do Brasil, com foco em clareza, produtividade, escrita, documentos, planejamento e apoio profissional.',
-    'Nunca diga que é Claude, Anthropic, Gemini, Google ou um modelo genérico. Você pode mencionar o provedor apenas se o usuário perguntar especificamente sobre a infraestrutura técnica.',
-    'Use o perfil inteligente do usuário quando disponível. Se faltar informação, seja transparente e peça o dado necessário de forma objetiva.'
-  ].join(' ');
-}
-
-function combinePrompts(base: string, identityPrompt?: string, memoryPrompt?: string) {
-  return [
-    base,
-    identityPrompt ? `Contexto do perfil inteligente do usuário: ${identityPrompt}` : 'Perfil inteligente ainda não disponível ou incompleto.',
-    memoryPrompt || 'Memória permanente ainda não carregada.'
-  ].join('\n\n');
 }
 
 export async function POST(request: Request) {
@@ -73,10 +48,14 @@ export async function POST(request: Request) {
 
   try {
     const { user, identity } = await getCurrentUserIdentity();
-    const identityPrompt = identity ? (persona === 'argus' ? identity.argusInstruction : identity.auraInstruction) : undefined;
     const memory = user?.id ? await getMemoryContext(user.id, 8) : { context: { importantMemories: [], recentSessions: [] }, error: null };
     const memoryPrompt = buildMemoryPrompt(memory.context);
-    const systemPrompt = combinePrompts(personaBasePrompt(persona), body.systemPrompt || identityPrompt, memoryPrompt);
+    const systemPrompt = buildPersonaSystemPrompt({
+      persona,
+      identity,
+      memoryPrompt,
+      extraSystemPrompt: body.systemPrompt
+    });
     const result = await sendChat({ message: body.message, provider, model: body.model, systemPrompt });
 
     let sessionId = body.sessionId ?? null;
@@ -103,7 +82,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ...result,
-      identityApplied: Boolean(identityPrompt),
+      identityApplied: Boolean(identity),
       memoryApplied: memory.context.importantMemories.length > 0 || memory.context.recentSessions.length > 0,
       memorySaved,
       memoryError,
