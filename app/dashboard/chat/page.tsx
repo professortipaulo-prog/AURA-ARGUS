@@ -73,32 +73,67 @@ function compact(value: string, max = 220) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+function cleanFact(value: string) {
+  return value.replace(/[.;]+$/, '').trim();
+}
+
 function extractLocalMemories(message: string): LocalMemory[] {
-  const text = message.trim();
-  const memories: LocalMemory[] = [];
   const nowIso = new Date().toISOString();
+  const memories: LocalMemory[] = [];
+  const lines = message
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   const add = (title: string, content: string, tags: string[]) => {
-    const normalized = compact(content, 320);
+    const normalized = compact(content, 360);
     if (!normalized) return;
+    const key = title.toLowerCase();
+    if (memories.some((item) => item.title.toLowerCase() === key)) return;
     memories.push({ title, content: normalized, tags, createdAt: nowIso });
   };
 
-  const banco = text.match(/(?:meu|minha|o)\s+banco(?:\s+principal|\s+de\s+dados)?\s+(?:é|eh|será|:)?\s*(.+)$/i);
-  if (banco?.[1]) add('Banco principal do projeto', `O banco principal utilizado neste projeto é ${banco[1].replace(/[.;]+$/, '').trim()}.`, ['database', 'project']);
+  const scan = (text: string) => {
+    const banco = text.match(/(?:meu|minha|o)\s+banco(?:\s+principal|\s+de\s+dados)?\s*(?:é|eh|será|sera|:)\s*(.+)$/i);
+    if (banco?.[1]) add('Banco principal do projeto', `O banco principal utilizado neste projeto é ${cleanFact(banco[1])}.`, ['database', 'project', 'confirmed']);
 
-  const etapa = text.match(/(?:próxima etapa|proxima etapa|próximo passo|proximo passo)\s+(?:é|eh|será|:)?\s*(.+)$/i);
-  if (etapa?.[1]) add('Próxima etapa do projeto', `A próxima etapa deste projeto é ${etapa[1].replace(/[.;]+$/, '').trim()}.`, ['next-step', 'project']);
+    const etapa = text.match(/(?:a\s+)?(?:próxima etapa|proxima etapa|próximo passo|proximo passo)(?:\s+deste\s+projeto)?\s*(?:é|eh|será|sera|:)\s*(.+)$/i);
+    if (etapa?.[1]) add('Próxima etapa do projeto', `A próxima etapa deste projeto é ${cleanFact(etapa[1])}.`, ['next-step', 'project', 'confirmed']);
 
-  const deploy = text.match(/(?:utilizarei|usarei|vamos usar|será usado)\s+(.+?)\s+(?:para deploy|como deploy|no deploy)/i);
-  if (deploy?.[1]) add('Deploy do projeto', `O deploy do projeto utilizará ${deploy[1].trim()}.`, ['deploy', 'project']);
+    const deploy =
+      text.match(/(?:meu\s+deploy|deploy)\s*(?:é|eh|será|sera|:)\s*(?:na|no|em|a|o)?\s*(.+)$/i) ??
+      text.match(/(?:utilizarei|usarei|vamos usar|será usado|sera usado)\s+(.+?)\s+(?:para deploy|como deploy|no deploy)/i);
+    if (deploy?.[1]) add('Deploy do projeto', `O deploy do projeto utiliza ${cleanFact(deploy[1])}.`, ['deploy', 'project', 'confirmed']);
 
-  const framework = text.match(/(Next\.js\s*14|NextJS\s*14|Next\s*14)\s+como\s+framework/i);
-  if (framework?.[1]) add('Framework do projeto', `O framework do projeto é ${framework[1].trim()}.`, ['framework', 'project']);
+    const framework =
+      text.match(/(?:meu\s+framework|framework)\s*(?:é|eh|será|sera|:)\s*(.+)$/i) ??
+      text.match(/(Next\.js\s*14|NextJS\s*14|Next\s*14)\s+como\s+framework/i);
+    if (framework?.[1]) add('Framework do projeto', `O framework do projeto é ${cleanFact(framework[1])}.`, ['framework', 'project', 'confirmed']);
+
+    const iaEstrategica = text.match(/(?:minha|a)\s+IA\s+estrat[ée]gica\s*(?:utiliza|usa|é|eh|será|sera|:)\s*(.+)$/i);
+    if (iaEstrategica?.[1]) add('IA estratégica do projeto', `A IA estratégica do projeto utiliza ${cleanFact(iaEstrategica[1])}.`, ['ai', 'aura', 'project', 'confirmed']);
+
+    const iaOperacional = text.match(/(?:minha|a)\s+IA\s+operacional\s*(?:utiliza|usa|é|eh|será|sera|:)\s*(.+)$/i);
+    if (iaOperacional?.[1]) add('IA operacional do projeto', `A IA operacional do projeto utiliza ${cleanFact(iaOperacional[1])}.`, ['ai', 'argus', 'project', 'confirmed']);
+
+    const nomeProjeto = text.match(/(?:meu\s+projeto\s+chama-se|projeto\s+ativo\s*(?:é|eh|:))\s*(.+)$/i);
+    if (nomeProjeto?.[1]) add('Nome do projeto', `O projeto ativo chama-se ${cleanFact(nomeProjeto[1])}.`, ['project', 'confirmed']);
+
+    const objetivo = text.match(/(?:o\s+)?objetivo\s+principal\s*(?:é|eh|será|sera|:)\s*(.+)$/i);
+    if (objetivo?.[1]) add('Objetivo principal do projeto', `O objetivo principal do projeto é ${cleanFact(objetivo[1])}.`, ['objective', 'project', 'confirmed']);
+
+    const editor = text.match(/(?:meu\s+editor|editor\s+principal)\s*(?:é|eh|:)\s*(.+)$/i);
+    if (editor?.[1]) add('Editor principal', `O editor principal utilizado por Paulo é ${cleanFact(editor[1])}.`, ['development', 'tool', 'confirmed']);
+
+    const sistema = text.match(/trabalho\s+no\s+(.+?),?\s+mas\s+prefiro\s+(.+)$/i);
+    if (sistema?.[1] && sistema?.[2]) add('Ambiente de desenvolvimento', `Paulo trabalha no ${cleanFact(sistema[1])}, mas prefere ${cleanFact(sistema[2])}.`, ['development', 'os', 'confirmed']);
+  };
+
+  for (const line of lines) scan(line);
+  if (!lines.length) scan(message.trim());
 
   return memories;
 }
-
 function mergeLocalMemories(current: LocalMemory[], incoming: LocalMemory[]) {
   if (!incoming.length) return current;
   const byTitle = new Map<string, LocalMemory>();
@@ -132,11 +167,10 @@ function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null, lo
     ? `Projeto ativo no workspace: ${project.name}${project.description ? ` — ${project.description}` : ''}. Responda priorizando este projeto quando a pergunta depender de contexto.`
     : 'Projeto ativo no workspace: AURA/ARGUS AI Operating System.';
   const memoryContext = localMemories.length
-    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT:\n${localMemories.map((item, index) => `${index + 1}. ${item.title}: ${item.content}`).join('\n')}\nRegra crítica: quando o usuário perguntar sobre banco, próxima etapa, framework, deploy ou arquitetura deste projeto, use diretamente a memória local acima e não diga que não possui registro.`
+    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT — FATOS CONFIRMADOS PELO USUÁRIO:\n${localMemories.map((item, index) => `${index + 1}. ${item.title}: ${item.content}`).join('\n')}\nRegras críticas de uso da memória: use estes fatos como fonte prioritária. Quando o usuário perguntar sobre banco, deploy, framework, IA estratégica, IA operacional, próxima etapa, objetivo ou arquitetura deste projeto, responda com base nestes fatos. Não diga que não possui registro quando o fato estiver listado acima. Diferencie fatos confirmados de inferências.`
     : 'MEMÓRIA LOCAL RECUPERADA DO CHAT: ainda sem registros nesta sessão/navegador.';
-  return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}.`;
+  return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}. Se o usuário apenas informar um fato, confirme objetivamente e evite transformar a resposta em uma consultoria longa.`;
 }
-
 function AvatarDockCard({ persona, active, onClick }: { persona: Persona; active: boolean; onClick: () => void }) {
   const item = PERSONAS[persona];
   return (
@@ -261,12 +295,10 @@ export default function ChatPage() {
     setIsSending(true);
 
     const capturedMemories = extractLocalMemories(text);
+    const promptMemories = mergeLocalMemories(localMemories, capturedMemories);
     if (capturedMemories.length) {
-      setLocalMemories((current) => {
-        const next = mergeLocalMemories(current, capturedMemories);
-        saveLocalMemories(next);
-        return next;
-      });
+      saveLocalMemories(promptMemories);
+      setLocalMemories(promptMemories);
     }
 
     try {
@@ -276,7 +308,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: text,
           persona: selectedPersona,
-          systemPrompt: buildSystemPrompt(selectedPersona, selectedProject, localMemories),
+          systemPrompt: buildSystemPrompt(selectedPersona, selectedProject, promptMemories),
           sessionId,
           projectId: selectedProject?.id ?? null
         })
