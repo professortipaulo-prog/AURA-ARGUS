@@ -530,3 +530,76 @@ export function formatLastActivity(value: string | null) {
   if (!value) return '—';
   return new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
+
+export type MemoryDebugSnapshot = {
+  generatedAt: string;
+  temporal: TemporalContext;
+  project: MemoryContext['project'];
+  recovered: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    content: string;
+    priority: number;
+    salience: number;
+    tags: string[];
+    source: 'relevant' | 'project' | 'user';
+    updatedAt: string | null;
+  }>;
+  recentSessions: MemoryContext['recentSessions'];
+  promptPreview: string;
+  counts: MemoryOverview;
+};
+
+export async function getMemoryDebug(userId: string): Promise<{ ok: boolean; error: string | null; data: MemoryDebugSnapshot | null }> {
+  try {
+    const { projectId } = await getOrCreateActiveProject(userId);
+    const { context, error } = await getMemoryContext(userId, 18, 'arquitetura projeto banco framework deploy próxima etapa IA estratégica IA operacional', projectId ?? null);
+    const temporal = buildTemporalContext();
+    const counts = await getMemoryOverview(userId);
+    const promptPreview = [temporalPromptBlock(temporal), buildMemoryPrompt(context, 'debug memória projeto')].join('\n\n').slice(0, 6000);
+
+    const addSource = (source: 'relevant' | 'project' | 'user', items: ImportantMemory[]) => items.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      title: item.title,
+      content: item.content,
+      priority: Math.round(memoryPriorityScore(item)),
+      salience: Number(item.salience ?? 0),
+      tags: item.tags ?? [],
+      source,
+      updatedAt: item.updatedAt ?? null
+    }));
+
+    const merged = [
+      ...addSource('relevant', context.relevantMemories),
+      ...addSource('project', context.projectMemories),
+      ...addSource('user', context.importantMemories)
+    ];
+    const seen = new Set<string>();
+    const recovered = merged
+      .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      })
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 20);
+
+    return {
+      ok: true,
+      error,
+      data: {
+        generatedAt: new Date().toISOString(),
+        temporal,
+        project: context.project,
+        recovered,
+        recentSessions: context.recentSessions.slice(0, 8),
+        promptPreview,
+        counts
+      }
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Erro ao montar diagnóstico da memória.', data: null };
+  }
+}
