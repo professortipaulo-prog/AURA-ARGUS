@@ -160,19 +160,40 @@ function extractLocalMemories(message: string): LocalMemory[] {
 
   return memories;
 }
+
+function localMemoryPriorityScore(memory: LocalMemory) {
+  const haystack = stripAccents(`${memory.title} ${memory.content} ${memory.tags.join(' ')}`);
+  let score = 0;
+  if (/proxima etapa|proximo passo|next-step|pendencia|marco/.test(haystack)) score += 100;
+  if (/banco principal|supabase|deploy|vercel|framework|next\.?js|nextjs|ia estrategica|ia operacional|claude|gemini/.test(haystack)) score += 90;
+  if (/objetivo principal|nome do projeto|aura\/argus|aura argus/.test(haystack)) score += 75;
+  if (/project|projeto|confirmed|confirmado/.test(haystack)) score += 40;
+  if (/editor|vs code|windows|linux|ambiente de desenvolvimento/.test(haystack)) score += 25;
+  if (/cor favorita/.test(haystack)) score -= 10;
+  const createdAt = Date.parse(memory.createdAt || '');
+  if (createdAt > 0) score += Math.max(0, 24 - Math.min(24, (Date.now() - createdAt) / 36e5));
+  return score;
+}
+
+function sortLocalMemoriesByPriority(items: LocalMemory[]) {
+  return [...items]
+    .filter((item) => !isCorruptedLocalMemory(item.content) && !isCorruptedLocalMemory(item.title))
+    .sort((a, b) => localMemoryPriorityScore(b) - localMemoryPriorityScore(a));
+}
+
 function mergeLocalMemories(current: LocalMemory[], incoming: LocalMemory[]) {
   if (!incoming.length) return current;
   const byTitle = new Map<string, LocalMemory>();
   for (const item of current) byTitle.set(item.title.toLowerCase(), item);
   for (const item of incoming) byTitle.set(item.title.toLowerCase(), item);
-  return Array.from(byTitle.values()).slice(-24);
+  return sortLocalMemoriesByPriority(Array.from(byTitle.values())).slice(0, 24);
 }
 
 function loadLocalMemories(): LocalMemory[] {
   if (typeof window === 'undefined') return [];
   try {
     const data = JSON.parse(window.localStorage.getItem(LOCAL_MEMORY_KEY) || '[]');
-    return Array.isArray(data) ? data.filter((item) => item?.title && item?.content).slice(-24) : [];
+    return Array.isArray(data) ? sortLocalMemoriesByPriority(data.filter((item) => item?.title && item?.content)).slice(0, 24) : [];
   } catch {
     return [];
   }
@@ -180,7 +201,7 @@ function loadLocalMemories(): LocalMemory[] {
 
 function saveLocalMemories(memories: LocalMemory[]) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOCAL_MEMORY_KEY, JSON.stringify(memories.slice(-24)));
+  window.localStorage.setItem(LOCAL_MEMORY_KEY, JSON.stringify(sortLocalMemoriesByPriority(memories).slice(0, 24)));
 }
 
 
@@ -193,7 +214,7 @@ function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null, lo
     ? `Projeto ativo no workspace: ${project.name}${project.description ? ` — ${project.description}` : ''}. Responda priorizando este projeto quando a pergunta depender de contexto.`
     : 'Projeto ativo no workspace: AURA/ARGUS AI Operating System.';
   const memoryContext = localMemories.length
-    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT — FATOS CONFIRMADOS PELO USUÁRIO:\n${localMemories.map((item, index) => `${index + 1}. ${item.title}: ${item.content}`).join('\n')}\nRegras críticas de uso da memória: use estes fatos como fonte prioritária. Quando o usuário perguntar sobre banco, deploy, framework, IA estratégica, IA operacional, próxima etapa, objetivo ou arquitetura deste projeto, responda com base nestes fatos. Não diga que não possui registro quando o fato estiver listado acima. Diferencie fatos confirmados de inferências.`
+    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT — FATOS CONFIRMADOS PELO USUÁRIO:\n${sortLocalMemoriesByPriority(localMemories).map((item, index) => `${index + 1}. [P${Math.round(localMemoryPriorityScore(item))}] ${item.title}: ${item.content}`).join('\n')}\nRegras críticas de uso da memória: use estes fatos como fonte prioritária, respeitando a ordem de prioridade exibida. Quando o usuário perguntar sobre banco, deploy, framework, IA estratégica, IA operacional, próxima etapa, objetivo ou arquitetura deste projeto, responda com base nestes fatos. Não diga que não possui registro quando o fato estiver listado acima. Diferencie fatos confirmados de inferências.`
     : 'MEMÓRIA LOCAL RECUPERADA DO CHAT: ainda sem registros nesta sessão/navegador.';
   return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}. Se o usuário apenas informar um fato, confirme objetivamente e evite transformar a resposta em uma consultoria longa.`;
 }

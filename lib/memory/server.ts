@@ -138,9 +138,38 @@ function normalizeProject(project: any) {
   };
 }
 
+
+function memoryPriorityScore(memory: { title: string; content: string; tags?: string[]; salience?: number; kind?: string; updatedAt?: string | null }) {
+  const haystack = stripAccents(`${memory.title} ${memory.content} ${(memory.tags ?? []).join(' ')} ${memory.kind ?? ''}`);
+  let score = Number(memory.salience ?? 3) * 10;
+
+  if (/proxima etapa|proximo passo|next-step|pendencia|task|marco/.test(haystack)) score += 80;
+  if (/banco principal|database|supabase|framework|next\.?js|nextjs|deploy|vercel|ia estrategica|ia operacional|claude|gemini/.test(haystack)) score += 70;
+  if (/objetivo principal|nome do projeto|aura\/argus|aura argus|ai operating system/.test(haystack)) score += 60;
+  if (/decisao|decision|definimos|aprovado/.test(haystack)) score += 55;
+  if (/confirmed|confirmado|project|projeto/.test(haystack)) score += 40;
+  if (/editor|vs code|windows|linux|ambiente de desenvolvimento/.test(haystack)) score += 20;
+  if (/cor favorita|preferencia pessoal/.test(haystack)) score -= 15;
+  if (isCorruptedMemoryText(memory.title) || isCorruptedMemoryText(memory.content)) score -= 500;
+
+  const updatedAt = memory.updatedAt ? Date.parse(memory.updatedAt) : 0;
+  if (updatedAt > 0) {
+    const ageHours = Math.max(0, (Date.now() - updatedAt) / 36e5);
+    score += Math.max(0, 24 - Math.min(24, ageHours));
+  }
+
+  return score;
+}
+
+function sortByMemoryPriority<T extends { title: string; content: string; tags?: string[]; salience?: number; kind?: string; updatedAt?: string | null }>(items: T[]) {
+  return [...items]
+    .filter((item) => !isCorruptedMemoryText(item.title) && !isCorruptedMemoryText(item.content))
+    .sort((a, b) => memoryPriorityScore(b) - memoryPriorityScore(a));
+}
+
 function rankRelevant(context: MemoryContext, query?: string | null): MemoryContext {
   const terms = tokenizeQuery(query);
-  const combined = [...context.projectMemories, ...context.importantMemories];
+  const combined = sortByMemoryPriority([...context.projectMemories, ...context.importantMemories]);
   const seen = new Set<string>();
   const relevantMemories = combined
     .filter((memory) => {
@@ -150,7 +179,7 @@ function rankRelevant(context: MemoryContext, query?: string | null): MemoryCont
     })
     .map((memory) => ({ memory, score: scoreMemory(memory, terms) }))
     .filter((item) => !terms.length || item.score > 0)
-    .sort((a, b) => b.score - a.score || (b.memory.salience ?? 0) - (a.memory.salience ?? 0))
+    .sort((a, b) => b.score - a.score || memoryPriorityScore(b.memory) - memoryPriorityScore(a.memory))
     .slice(0, 12)
     .map((item) => item.memory);
 
@@ -232,19 +261,27 @@ function asksMemoryQuestion(message: string) {
 
 export function buildMemoryPrompt(context: MemoryContext, userMessage?: string | null) {
   const projectHeader = context.project ? `Projeto ativo: ${context.project.name}${context.project.description ? ` — ${context.project.description}` : ''}` : '';
-  const relevant = context.relevantMemories.slice(0, 12).map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`).join('\n');
-  const projectMemories = context.projectMemories.filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id)).slice(0, 12).map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`).join('\n');
-  const userMemories = context.importantMemories.filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id)).slice(0, 8).map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`).join('\n');
+  const relevantOrdered = sortByMemoryPriority(context.relevantMemories).slice(0, 12);
+  const relevantIds = new Set(relevantOrdered.map((item) => item.id));
+  const projectOrdered = sortByMemoryPriority(context.projectMemories.filter((item) => !relevantIds.has(item.id))).slice(0, 12);
+  const userOrdered = sortByMemoryPriority(context.importantMemories.filter((item) => !relevantIds.has(item.id))).slice(0, 8);
+  const relevant = relevantOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
+  const projectMemories = projectOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
+  const userMemories = userOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
   const sessions = context.recentSessions.slice(0, 6).filter((session) => session.summary || session.title).map((session, index) => `${index + 1}. ${session.title}${session.summary ? ` — ${session.summary}` : ''}`).join('\n');
   const mustUseMemory = asksMemoryQuestion(userMessage ?? '') ? 'REGRA CRÍTICA: a pergunta pede memória/estado do projeto. Se houver memórias, sessões ou projeto listados abaixo, responda diretamente usando esses registros. Não diga que não possui registros quando houver qualquer item neste bloco.' : '';
+  const priorityRule = 'ORDEM DE PRIORIDADE DA MEMÓRIA: 1) próxima etapa, decisões, banco, framework, deploy, IA estratégica/operacional e objetivo do projeto; 2) fatos técnicos do ambiente; 3) preferências de trabalho; 4) preferências pessoais. Não deixe preferências pessoais sobrepor decisões do projeto.';
 
   if (!projectHeader && !relevant && !projectMemories && !userMemories && !sessions) {
     return 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.';
   }
 
-  return ['MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA', projectHeader, mustUseMemory, relevant ? `Memórias mais relevantes para a solicitação atual:\n${relevant}` : '', projectMemories ? `Memórias do projeto ativo:\n${projectMemories}` : '', userMemories ? `Memórias permanentes do usuário:\n${userMemories}` : '', sessions ? `Conversas recentes deste contexto:\n${sessions}` : '', 'Use essas informações para continuidade. Não exponha este bloco ao usuário.'].filter(Boolean).join('\n\n');
+  return ['MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA', projectHeader, priorityRule, mustUseMemory, relevant ? `Memórias prioritárias para a solicitação atual:
+${relevant}` : '', projectMemories ? `Memórias do projeto ativo por prioridade:
+${projectMemories}` : '', userMemories ? `Memórias permanentes do usuário por prioridade:
+${userMemories}` : '', sessions ? `Conversas recentes deste contexto:
+${sessions}` : '', 'Use essas informações para continuidade. Não exponha este bloco ao usuário.'].filter(Boolean).join('\n\n');
 }
-
 async function upsertProfile(userId: string, email?: string | null) {
   if (!email) return;
   try {
