@@ -1,427 +1,343 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import type { ImportantMemory, MemoryContext, MemoryPersona, SaveChatTurnInput } from './types';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/auth/constants';
+import type { ChatPersistenceInput, MemoryOverview, PersistedChatTurn, ProjectMemoryContext, TemporalContext } from './types';
 
-const DEFAULT_CONTEXT: MemoryContext = {
-  project: null,
-  projectMemories: [],
-  importantMemories: [],
-  relevantMemories: [],
-  recentSessions: []
-};
+const ACTIVE_PROJECT_TITLE = 'AURA/ARGUS';
+const ACTIVE_PROJECT_SLUG = 'aura-argus';
+const TIMEZONE = process.env.AURA_ARGUS_TIMEZONE || 'America/Bahia';
 
-type MemoryCandidate = {
-  kind: ImportantMemory['kind'];
-  scope: 'user' | 'project' | 'session' | 'organization';
-  title: string;
-  content: string;
-  salience: number;
-  tags: string[];
-};
+type SupabaseAny = ReturnType<typeof createSupabaseAdminClient>;
 
-function compactText(value: string, max = 120) {
-  const text = (value || '').replace(/\s+/g, ' ').trim();
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+function aiProviderName(provider: string) {
+  return provider === 'gemini' ? 'google' : 'anthropic';
 }
 
-function titleFromMessage(message: string) {
-  return compactText(message, 72) || 'Nova conversa';
+function isSchemaError(error?: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() || '';
+  return message.includes('schema must be one of') || message.includes('invalid schema') || message.includes('not found');
 }
 
-function stripAccents(value: string) {
-  return (value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+function startOfTodayInTimezone() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  return `${year}-${month}-${day}T00:00:00`;
 }
 
-function tokenizeQuery(query?: string | null) {
-  if (!query) return [];
-  const stopwords = new Set([
-    'para', 'como', 'com', 'uma', 'uns', 'dos', 'das', 'que', 'por', 'pra', 'sobre', 'isso', 'esse', 'essa',
-    'meu', 'minha', 'qual', 'quem', 'onde', 'quando', 'aura', 'argus', 'voce', 'você', 'pode', 'fazer',
-    'projeto', 'deste', 'neste', 'dessa', 'deste', 'etapa', 'passo', 'proxima', 'próxima'
-  ]);
-  return Array.from(new Set(stripAccents(query)
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter((word) => word.length >= 3 && !stopwords.has(word))));
-}
+export function buildTemporalContext(date = new Date()): TemporalContext {
+  const datePtBr = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(date);
 
-function scoreMemory(memory: { title: string; content: string; tags?: string[]; salience?: number }, terms: string[]) {
-  if (!terms.length) return memory.salience ?? 0;
-  const haystack = stripAccents(`${memory.title} ${memory.content} ${(memory.tags ?? []).join(' ')}`);
-  const matches = terms.reduce((acc, term) => acc + (haystack.includes(term) ? 1 : 0), 0);
-  return matches * 10 + (memory.salience ?? 0);
-}
+  const timePtBr = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(date);
 
-function normalizeMemoryItem(item: any): ImportantMemory | null {
-  if (!item) return null;
-  const id = String(item.id ?? Math.random());
-  const kind = String(item.kind ?? item.type ?? item.memoryType ?? 'note');
-  const title = String(item.title ?? item.kind ?? item.type ?? 'Memória');
-  const content = String(item.content ?? item.description ?? '');
-  if (!content.trim() && !title.trim()) return null;
+  const localParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(date);
+
+  const hour = Number(localParts.find((p) => p.type === 'hour')?.value || 0);
+  const minute = Number(localParts.find((p) => p.type === 'minute')?.value || 0);
+  const second = Number(localParts.find((p) => p.type === 'second')?.value || 0);
+  const secondsUntilEndOfDay = Math.max(0, 24 * 60 * 60 - (hour * 3600 + minute * 60 + second));
+
   return {
-    id,
-    kind,
-    title: compactText(title, 120),
-    content: content.trim() || compactText(title, 400),
-    salience: Number(item.salience ?? item.importance ?? 3),
-    tags: Array.isArray(item.tags) ? item.tags : [],
-    projectId: item.projectId ?? item.project_id ?? null,
-    updatedAt: item.updatedAt ?? item.updated_at ?? item.createdAt ?? item.created_at ?? null
+    nowIso: date.toISOString(),
+    datePtBr,
+    timePtBr,
+    timezone: TIMEZONE,
+    minutesUntilEndOfDay: Math.ceil(secondsUntilEndOfDay / 60),
+    hoursUntilEndOfDay: Number((secondsUntilEndOfDay / 3600).toFixed(2))
   };
 }
 
-function normalizeSession(item: any) {
-  return {
-    id: String(item.id),
-    title: String(item.title ?? 'Conversa'),
-    summary: item.summary ?? null,
-    messageCount: Number(item.messageCount ?? item.message_count ?? 0),
-    lastPersona: item.lastPersona ?? item.last_persona ?? null,
-    lastMessageAt: item.lastMessageAt ?? item.last_message_at ?? null,
-    projectId: item.projectId ?? item.project_id ?? null
-  };
-}
-
-function normalizeProject(project: any) {
-  if (!project) return null;
-  return {
-    id: String(project.id),
-    name: String(project.name ?? project.title ?? 'Projeto'),
-    slug: String(project.slug ?? 'projeto'),
-    description: project.description ?? null,
-    memoryCount: Number(project.memoryCount ?? project.memory_count ?? 0),
-    sessionCount: Number(project.sessionCount ?? project.session_count ?? 0)
-  };
-}
-
-function normalizeContext(data: any): MemoryContext {
-  const context = (data ?? DEFAULT_CONTEXT) as any;
-  const projectMemoriesRaw = context.projectMemories ?? context.project_memories ?? context.memory ?? context.memories ?? [];
-  const importantMemoriesRaw = context.importantMemories ?? context.important_memories ?? [];
-  const recentSessionsRaw = context.recentSessions ?? context.recent_sessions ?? context.sessions ?? [];
-
-  return {
-    project: normalizeProject(context.project),
-    projectMemories: Array.isArray(projectMemoriesRaw) ? projectMemoriesRaw.map(normalizeMemoryItem).filter(Boolean) as ImportantMemory[] : [],
-    importantMemories: Array.isArray(importantMemoriesRaw) ? importantMemoriesRaw.map(normalizeMemoryItem).filter(Boolean) as ImportantMemory[] : [],
-    relevantMemories: Array.isArray(context.relevantMemories) ? context.relevantMemories.map(normalizeMemoryItem).filter(Boolean) as ImportantMemory[] : [],
-    recentSessions: Array.isArray(recentSessionsRaw) ? recentSessionsRaw.map(normalizeSession) : []
-  };
-}
-
-function rankRelevant(context: MemoryContext, query?: string | null): MemoryContext {
-  const terms = tokenizeQuery(query);
-  const combined = [...context.projectMemories, ...context.importantMemories];
-  const seen = new Set<string>();
-
-  const relevantMemories = combined
-    .filter((memory) => {
-      if (seen.has(memory.id)) return false;
-      seen.add(memory.id);
-      return true;
-    })
-    .map((memory) => ({ memory, score: scoreMemory(memory, terms) }))
-    .filter((item) => !terms.length || item.score > 0)
-    .sort((a, b) => b.score - a.score || (b.memory.salience ?? 0) - (a.memory.salience ?? 0))
-    .slice(0, 10)
-    .map((item) => item.memory);
-
-  return { ...context, relevantMemories };
-}
-
-export async function getMemoryContext(
-  userId: string,
-  limit = 10,
-  query?: string | null,
-  projectId?: string | null
-): Promise<{ context: MemoryContext; error: string | null }> {
-  const supabase = createSupabaseServerClient();
-
-  const projectResult = await supabase.rpc('get_project_memory_context', {
-    p_user_id: userId,
-    p_project_id: projectId ?? null,
-    p_limit: limit
-  } as any);
-
-  if (!projectResult.error) {
-    return { context: rankRelevant(normalizeContext(projectResult.data), query), error: null };
-  }
-
-  const globalResult = await supabase.rpc('get_memory_context', { p_user_id: userId, p_limit: limit } as any);
-  if (!globalResult.error) {
-    return { context: rankRelevant(normalizeContext(globalResult.data), query), error: null };
-  }
-
-  return { context: DEFAULT_CONTEXT, error: `${projectResult.error.message} | ${globalResult.error.message}` };
-}
-
-function asksMemoryQuestion(message: string) {
-  const lower = stripAccents(message);
-  return /\b(qual|onde|em que|o que|quais|lembra|lembrar|paramos|status)\b/.test(lower)
-    && /\b(proxima etapa|proximo passo|decisao|decisao|pendencia|onde paramos|etapa|marco|status|projeto)\b/.test(lower);
-}
-
-export function buildMemoryPrompt(context: MemoryContext, userMessage?: string | null) {
-  const projectHeader = context.project
-    ? `Projeto ativo: ${context.project.name}${context.project.description ? ` — ${context.project.description}` : ''}`
-    : '';
-
-  const relevant = context.relevantMemories
-    .slice(0, 10)
-    .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
-    .join('\n');
-
-  const projectMemories = context.projectMemories
-    .filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id))
-    .slice(0, 12)
-    .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
-    .join('\n');
-
-  const userMemories = context.importantMemories
-    .filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id))
-    .slice(0, 8)
-    .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
-    .join('\n');
-
-  const sessions = context.recentSessions
-    .slice(0, 6)
-    .filter((session) => session.summary || session.title)
-    .map((session, index) => `${index + 1}. ${session.title}${session.summary ? ` — ${session.summary}` : ''}`)
-    .join('\n');
-
-  const mustUseMemory = asksMemoryQuestion(userMessage ?? '')
-    ? 'REGRA CRÍTICA: a pergunta pede memória/estado do projeto. Se houver memórias, sessões ou projeto listados abaixo, responda diretamente usando esses registros. Não diga que não possui registros quando houver qualquer item neste bloco.'
-    : '';
-
-  if (!projectHeader && !relevant && !projectMemories && !userMemories && !sessions) {
-    return 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.';
-  }
-
+export function temporalPromptBlock(context = buildTemporalContext()) {
   return [
-    'MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA',
-    projectHeader,
-    mustUseMemory,
-    relevant ? `Memórias mais relevantes para a solicitação atual:\n${relevant}` : '',
-    projectMemories ? `Memórias do projeto ativo:\n${projectMemories}` : '',
-    userMemories ? `Memórias permanentes do usuário:\n${userMemories}` : '',
-    sessions ? `Conversas recentes deste contexto:\n${sessions}` : '',
-    'Use essas informações para continuidade. Não exponha este bloco ao usuário.'
-  ].filter(Boolean).join('\n\n');
+    'CONTEXTO TEMPORAL OBRIGATÓRIO:',
+    `Data atual: ${context.datePtBr}.`,
+    `Hora atual: ${context.timePtBr}.`,
+    `Timezone oficial do sistema: ${context.timezone}.`,
+    `Agora em ISO: ${context.nowIso}.`,
+    `Tempo aproximado até terminar o dia: ${context.hoursUntilEndOfDay} horas (${context.minutesUntilEndOfDay} minutos).`,
+    'Use estes dados como verdade. Não invente datas antigas e não use data de treinamento do modelo.'
+  ].join('\n');
 }
 
-async function ensureSession(
-  userId: string,
-  persona: MemoryPersona,
-  message: string,
-  sessionId?: string | null,
-  projectId?: string | null
-) {
-  const supabase = createSupabaseAdminClient().schema('core');
+async function ensureProject(admin: SupabaseAny, userId: string, organizationId: string | null) {
+  const core = admin.schema('core');
+  const orgId = organizationId || DEFAULT_ORGANIZATION_ID;
 
-  if (sessionId) {
-    const { data } = await supabase
-      .from('memory_sessions')
-      .select('id')
-      .eq('id', sessionId)
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (data?.id) return data.id as string;
+  const { data: existing, error: existingError } = await core
+    .from('projects')
+    .select('id, organization_id')
+    .eq('owner_id', userId)
+    .eq('slug', ACTIVE_PROJECT_SLUG)
+    .maybeSingle();
+
+  if (existing?.id) return { projectId: existing.id as string, organizationId: (existing.organization_id as string | null) || orgId, error: null };
+  if (existingError && !isSchemaError(existingError)) {
+    return { projectId: null, organizationId: orgId, error: existingError.message };
   }
 
-  const { data, error } = await supabase
-    .from('memory_sessions')
+  const { data: created, error: createError } = await core
+    .from('projects')
     .insert({
-      user_id: userId,
-      project_id: projectId ?? null,
-      title: titleFromMessage(message),
-      status: 'active',
-      last_persona: persona,
-      last_message_at: new Date().toISOString(),
-      metadata: projectId ? { projectId } : {}
+      organization_id: orgId,
+      owner_id: userId,
+      title: ACTIVE_PROJECT_TITLE,
+      slug: ACTIVE_PROJECT_SLUG,
+      description: 'Projeto operacional padrão do AURA/ARGUS para conversas, memória e estabilização técnica.',
+      context: { source: 'PATCH-046-MEMORY-UI-STABILIZATION' }
     })
-    .select('id')
+    .select('id, organization_id')
     .single();
 
-  if (error) throw error;
-  return data.id as string;
+  if (createError) return { projectId: null, organizationId: orgId, error: createError.message };
+  return { projectId: created.id as string, organizationId: (created.organization_id as string | null) || orgId, error: null };
 }
 
-function extractAfterPattern(text: string, patterns: RegExp[]) {
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match?.[1]?.trim()) return compactText(match[1].trim().replace(/[.;]+$/, ''), 300);
-  }
-  return null;
-}
-
-function extractMemoryCandidate(userMessage: string, projectId?: string | null): MemoryCandidate | null {
-  const text = userMessage.trim();
-  const lower = stripAccents(text);
-  if (text.length < 8) return null;
-
-  const nextStep = extractAfterPattern(text, [
-    /(?:pr[oó]xima etapa|pr[oó]ximo passo|pr[oó]xima fase)\s+(?:é|eh|sera|será|:)?\s*(.+)$/i,
-    /(?:a etapa agora|o passo agora)\s+(?:é|eh|sera|será|:)?\s*(.+)$/i,
-    /(?:neste projeto|nesse projeto).*?(?:proxima etapa|próxima etapa|proximo passo|próximo passo).*?(?:é|eh|sera|será|:)?\s*(.+)$/i
-  ]);
-  if (nextStep) {
-    return {
-      kind: 'task',
-      scope: projectId ? 'project' : 'user',
-      title: 'Próxima etapa do projeto',
-      content: `A próxima etapa deste projeto é ${nextStep}.`,
-      salience: 5,
-      tags: ['chat', 'auto', 'project', 'next-step']
-    };
-  }
-
-  const decision = extractAfterPattern(text, [
-    /(?:decis[aã]o|definimos|ficou definido|foi definido|aprovamos|foi aprovado)\s*(?:foi|é|eh|:)?\s*(.+)$/i,
-    /(?:neste projeto|nesse projeto).*?(?:decidimos|definimos)\s*(?:que)?\s*(.+)$/i
-  ]);
-  if (decision) {
-    return {
-      kind: 'decision',
-      scope: projectId ? 'project' : 'user',
-      title: 'Decisão registrada',
-      content: `Decisão registrada: ${decision}.`,
-      salience: 5,
-      tags: ['chat', 'auto', 'project', 'decision']
-    };
-  }
-
-  const preference = extractAfterPattern(text, [
-    /(?:prefiro|gosto que|quero que voce|quero que você|a partir de agora)\s+(.+)$/i
-  ]);
-  if (preference) {
-    return {
-      kind: 'preference',
-      scope: 'user',
-      title: 'Preferência do usuário',
-      content: `Preferência registrada: ${preference}.`,
-      salience: 4,
-      tags: ['chat', 'auto', 'preference']
-    };
-  }
-
-  const looksPersistent = /\b(lembre|memorize|guarde|salve|sou |meu |minha |cliente|empresa|curso|livro|senai|prazo|objetivo|pend[eê]ncia|patch|document engine|action engine|voice engine|memory engine|pr[oó]xima etapa|pr[oó]ximo passo)\b/i.test(text);
-  if (!looksPersistent || text.length < 12) return null;
-
-  let kind: ImportantMemory['kind'] = 'fact';
-  if (lower.includes('pendencia') || lower.includes('pendência')) kind = 'task';
-  else if (lower.includes('prefiro')) kind = 'preference';
-  else if (lower.includes('projeto')) kind = 'project';
-  else if (lower.includes('decisao') || lower.includes('definimos') || lower.includes('aprovado')) kind = 'decision';
-
-  return {
-    kind,
-    scope: projectId ? 'project' : 'user',
-    title: kind === 'project' ? 'Informação do projeto' : compactText(text, 64),
-    content: compactText(`Usuário informou: ${text}`, 500),
-    salience: lower.includes('lembre') || lower.includes('memorize') || kind === 'decision' || kind === 'task' ? 5 : 3,
-    tags: projectId ? ['chat', 'auto', 'project'] : ['chat', 'auto']
-  };
-}
-
-export async function saveChatTurn(input: SaveChatTurnInput) {
+export async function getOrCreateActiveProject(userId: string, organizationId: string | null) {
   const admin = createSupabaseAdminClient();
-  const core = admin.schema('core');
-  const sessionId = await ensureSession(input.userId, input.persona, input.userMessage, input.sessionId, input.projectId);
-  const now = new Date().toISOString();
+  return ensureProject(admin, userId, organizationId);
+}
 
-  // Garante que perfil/projeto existam antes da gravação quando a base foi parcialmente migrada.
-  if (input.userEmail) {
-    await core.from('profiles').upsert({ id: input.userId, email: input.userEmail }, { onConflict: 'id' });
+export async function getProjectMemoryContext(userId: string, projectId?: string | null): Promise<ProjectMemoryContext> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const memory = admin.schema('memory');
+    let query = memory
+      .from('items')
+      .select('title, content, type, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(12);
+
+    if (projectId) query = query.eq('project_id', projectId);
+
+    const { data, error } = await query;
+    if (error) return { items: [] };
+
+    return {
+      items: (data || []).map((item: any) => ({
+        title: item.title ?? null,
+        content: item.content,
+        type: item.type,
+        createdAt: item.created_at ?? null
+      }))
+    };
+  } catch {
+    return { items: [] };
+  }
+}
+
+export function memoryPromptBlock(context: ProjectMemoryContext) {
+  if (!context.items.length) {
+    return 'MEMÓRIA DO PROJETO: ainda não há memórias persistidas para este projeto.';
   }
 
-  const { error: messageError } = await core.from('memory_messages').insert([
-    {
+  const lines = context.items.map((item, index) => `${index + 1}. [${item.type}] ${item.title ? `${item.title}: ` : ''}${item.content}`);
+  return ['MEMÓRIA DO PROJETO RECUPERADA ANTES DA RESPOSTA:', ...lines].join('\n');
+}
+
+function shouldSaveAsProjectMemory(message: string) {
+  const text = message.toLowerCase();
+  return (
+    text.includes('neste projeto') ||
+    text.includes('nesse projeto') ||
+    text.includes('próxima etapa') ||
+    text.includes('proxima etapa') ||
+    text.includes('lembre') ||
+    text.includes('memorize') ||
+    text.includes('salve') ||
+    text.includes('guardar')
+  );
+}
+
+export async function persistChatTurn(input: ChatPersistenceInput): Promise<PersistedChatTurn> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const ai = admin.schema('ai');
+    const memory = admin.schema('memory');
+    const project = input.projectId
+      ? { projectId: input.projectId, organizationId: input.organizationId, error: null }
+      : await ensureProject(admin, input.userId, input.organizationId);
+
+    if (!project.projectId) {
+      return { sessionId: null, userMessageSaved: false, assistantMessageSaved: false, memorySaved: false, error: project.error || 'Projeto ativo não encontrado.' };
+    }
+
+    let sessionId = input.sessionId || null;
+
+    if (!sessionId) {
+      const { data: createdSession, error: sessionError } = await ai
+        .from('sessions')
+        .insert({
+          organization_id: project.organizationId,
+          project_id: project.projectId,
+          user_id: input.userId,
+          title: input.userMessage.slice(0, 80),
+          context_snapshot: {
+            persona: input.persona,
+            provider: input.provider,
+            model: input.model,
+            timezone: TIMEZONE,
+            patch: 'PATCH-046-MEMORY-UI-STABILIZATION'
+          }
+        })
+        .select('id')
+        .single();
+
+      if (sessionError) {
+        return { sessionId: null, userMessageSaved: false, assistantMessageSaved: false, memorySaved: false, error: sessionError.message };
+      }
+      sessionId = createdSession.id as string;
+    }
+
+    const providerName = aiProviderName(input.provider);
+
+    const { error: userMessageError } = await ai.from('messages').insert({
       session_id: sessionId,
       user_id: input.userId,
       role: 'user',
-      persona: input.persona,
       content: input.userMessage,
-      metadata: input.projectId ? { projectId: input.projectId } : {}
-    },
-    {
+      provider: providerName,
+      model: input.model,
+      metadata: { persona: input.persona, project_id: project.projectId }
+    });
+
+    const { error: assistantMessageError } = await ai.from('messages').insert({
       session_id: sessionId,
       user_id: input.userId,
       role: 'assistant',
-      persona: input.persona,
-      provider: input.provider,
-      model: input.model,
       content: input.assistantMessage,
-      metadata: input.projectId ? { projectId: input.projectId } : {}
+      provider: providerName,
+      model: input.model,
+      latency_ms: input.latencyMs ?? null,
+      metadata: { persona: input.persona, project_id: project.projectId }
+    });
+
+    const shouldSaveMemory = shouldSaveAsProjectMemory(input.userMessage);
+    let memorySaved = false;
+    let memoryError: string | null = null;
+
+    if (shouldSaveMemory) {
+      const { error } = await memory.from('items').insert({
+        organization_id: project.organizationId,
+        project_id: project.projectId,
+        user_id: input.userId,
+        type: 'project',
+        title: 'Memória de conversa do projeto',
+        content: input.userMessage,
+        source: 'chat',
+        importance: 4,
+        metadata: {
+          persona: input.persona,
+          provider: input.provider,
+          model: input.model,
+          session_id: sessionId,
+          patch: 'PATCH-046-MEMORY-UI-STABILIZATION'
+        }
+      });
+      memorySaved = !error;
+      memoryError = error?.message || null;
     }
-  ]);
 
-  if (messageError) throw messageError;
+    const { error: updateSessionError } = await ai
+      .from('sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', sessionId);
 
-  const summary = compactText(`${input.persona.toUpperCase()}: ${input.userMessage}`, 240);
-  const { count } = await core
-    .from('memory_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('session_id', sessionId)
-    .eq('user_id', input.userId);
-
-  await core
-    .from('memory_sessions')
-    .update({
-      summary,
-      project_id: input.projectId ?? null,
-      last_persona: input.persona,
-      last_message_at: now,
-      updated_at: now,
-      message_count: count ?? 2
-    })
-    .eq('id', sessionId)
-    .eq('user_id', input.userId);
-
-  const candidate = extractMemoryCandidate(input.userMessage, input.projectId);
-  let memoryRecorded = false;
-
-  if (candidate) {
-    const { error: memoryError } = await core.from('memory_items').insert({
-      user_id: input.userId,
-      session_id: sessionId,
-      project_id: input.projectId ?? null,
-      scope: candidate.scope,
-      kind: candidate.kind,
-      title: candidate.title,
-      content: candidate.content,
-      salience: candidate.salience,
-      tags: candidate.tags,
-      metadata: { source: 'chat-auto', projectId: input.projectId ?? null }
-    });
-    if (memoryError) throw memoryError;
-    memoryRecorded = true;
+    return {
+      sessionId,
+      userMessageSaved: !userMessageError,
+      assistantMessageSaved: !assistantMessageError,
+      memorySaved,
+      error: userMessageError?.message || assistantMessageError?.message || memoryError || updateSessionError?.message || null
+    };
+  } catch (error) {
+    return {
+      sessionId: null,
+      userMessageSaved: false,
+      assistantMessageSaved: false,
+      memorySaved: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao persistir conversa.'
+    };
   }
-
-  if (input.projectId) {
-    await core.from('project_timeline').insert({
-      project_id: input.projectId,
-      user_id: input.userId,
-      event_type: candidate?.kind === 'decision' ? 'decision' : candidate?.kind === 'task' ? 'next_step' : 'chat_turn',
-      title: candidate?.title ?? compactText(input.userMessage, 96),
-      description: candidate?.content ?? summary,
-      metadata: { persona: input.persona, sessionId, memoryRecorded }
-    });
-
-    await core.from('projects').update({ updated_at: now }).eq('id', input.projectId);
-  }
-
-  return { sessionId, memoryRecorded, memoryTitle: candidate?.title ?? null };
 }
 
-export async function getMemoryStatus(userId: string) {
-  const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase.rpc('get_memory_engine_status', { p_user_id: userId } as any);
-  if (error) {
-    return { ok: false, error: error.message, data: null };
+async function safeCount(schemaClient: any, table: string, userId: string, column = 'user_id') {
+  const { count, error } = await schemaClient
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .eq(column, userId);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+export async function getMemoryOverview(userId: string): Promise<MemoryOverview> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const ai = admin.schema('ai');
+    const memory = admin.schema('memory');
+
+    const [sessions, messages, memories] = await Promise.all([
+      safeCount(ai, 'sessions', userId),
+      safeCount(ai, 'messages', userId),
+      safeCount(memory, 'items', userId)
+    ]);
+
+    const { data: lastMessage } = await ai
+      .from('messages')
+      .select('created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: lastMemory } = await memory
+      .from('items')
+      .select('created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastActivity = [lastMessage?.created_at, lastMemory?.created_at].filter(Boolean).sort().at(-1) ?? null;
+
+    return { sessions, messages, memories, lastActivity };
+  } catch {
+    return { sessions: 0, messages: 0, memories: 0, lastActivity: null };
   }
-  return { ok: true, error: null, data };
+}
+
+export function formatLastActivity(value: string | null) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
 }
