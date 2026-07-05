@@ -518,96 +518,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   .chat-bubble { width: 100%; }
 }
 
-/* PATCH 043 — Project Memory selector */
-.chat-shell-card {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-}
-.project-context-bar {
-  display: grid;
-  grid-template-columns: auto minmax(260px, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid rgba(148,163,184,.14);
-  border-radius: 18px;
-  background: rgba(0,0,0,.18);
-  color: #d7e4f8;
-}
-.project-context-bar > span {
-  color: #8ea0b9;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-.project-context-bar select {
-  min-width: 0;
-  width: 100%;
-  border: 1px solid color-mix(in srgb, var(--active-primary) 34%, rgba(255,255,255,.12));
-  border-radius: 13px;
-  background: rgba(6, 12, 27, .86);
-  color: #fff;
-  outline: none;
-  padding: 9px 12px;
-  font-weight: 800;
-}
-.project-context-bar button {
-  border: 1px solid color-mix(in srgb, var(--active-primary) 48%, rgba(255,255,255,.12));
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--active-primary) 12%, rgba(255,255,255,.04));
-  color: #fff;
-  font-weight: 900;
-  padding: 9px 13px;
-  cursor: pointer;
-}
-.project-context-bar small {
-  color: #8ea0b9;
-  white-space: nowrap;
-  font-size: 12px;
-}
-.projects-memory-page {
-  padding: 22px 34px 34px;
-  display: grid;
-  gap: 18px;
-}
-.projects-memory-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.projects-memory-actions button,
-.projects-memory-actions a {
-  border: 1px solid color-mix(in srgb, var(--active-primary) 38%, rgba(255,255,255,.12));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--active-primary) 10%, rgba(255,255,255,.035));
-  color: #fff;
-  padding: 10px 14px;
-  font-weight: 900;
-  cursor: pointer;
-}
-.projects-memory-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-.project-memory-card {
-  border: 1px solid rgba(148,163,184,.16);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(11,18,36,.72), rgba(5,11,26,.84));
-  padding: 18px;
-  color: #eaf2ff;
-  box-shadow: 0 24px 80px rgba(0,0,0,.22);
-}
-.project-memory-card strong { display: block; font-size: 18px; color: #fff; }
-.project-memory-card p { min-height: 44px; margin: 8px 0 12px; color: #a9b7ca; line-height: 1.45; }
-.project-memory-card footer { display: flex; gap: 8px; flex-wrap: wrap; color: #8ea0b9; font-size: 12px; }
-@media (max-width: 980px) {
-  .project-context-bar { grid-template-columns: 1fr; }
-  .project-context-bar small { white-space: normal; }
-  .projects-memory-grid { grid-template-columns: 1fr; }
-}
-
-/* PATCH 043C — Landing PSF style restore after Project Memory globals overwrite */
+/* PATCH 036 - Landing concept + clean chat avatar dock */
 .psfhome-shell {
   position: relative;
   min-height: 100vh;
@@ -847,3 +758,442 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 }
 .aios-panel h2 {
   font-size: 19px;
+}
+.aios-panel p {
+  line-height: 1.55;
+  font-size: 14px;
+}
+.aios-panel-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+.aios-action-grid,
+.aios-project-grid {
+  gap: 10px;
+}
+.aios-action-grid a,
+.aios-project-card,
+.aios-module-list div {
+  min-height: 46px;
+  padding: 12px 14px;
+}
+
+/* Keep the approved chat page at desktop scale, but improve proportions */
+.chat-os {
+  height: calc(100vh - 82px);
+  padding: 18px 32px 22px;
+}
+.chat-shell-card {
+  max-width: min(1500px, calc(100vw - 360px));
+  gap: 14px;
+  padding: 18px;
+  border-radius: 28px;
+}
+.chat-avatar-dock {
+  gap: 14px;
+  padding: 5px;
+  border-radius: 24px;
+}
+.chat-avatar-card {
+  min-height: 110px;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 22px;
+}
+.chat-avatar-orbit {
+  display: none !important;
+}
+.chat-avatar-photo {
+  width: 94px;
+  height: 94px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--active-primary) 64%, transparent);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--active-primary) 26%, transparent);
+}
+.chat-avatar-info strong {
+  font-size: 26px;
+}
+.chat-avatar-info small {
+  font-size: 14px;
+}
+.chat-stream {
+  gap: 14px;
+  padding: 8px 6px 12px;
+}
+.chat-bubble {
+  width: min(860px, 86%);
+  padding: 18px 22px;
+  border-radius: 22px;
+  line-height: 1.62;
+}
+.chat-composer-dock {
+  grid-template-columns: minmax(0, 1fr) 74px;
+  gap: 12px;
+  padding-top: 12px;
+}
+.chat-composer-dock textarea {
+  min-height: 58px;
+  max-height: 150px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  field-sizing: content;
+}
+.chat-composer-dock button {
+  border-radius: 20px;
+  font-size: 25px;
+}
+.chat-composer-dock span {
+  font-size: 11px;
+}
+
+@media (min-width: 1600px) {
+  .chat-shell-card {
+    max-width: min(1540px, calc(100vw - 350px));
+  }
+}
+@media (max-width: 1280px) {
+  .aios-sidebar { width: 250px; }
+  .chat-shell-card { max-width: calc(100vw - 300px); }
+}
+@media (max-width: 1024px) {
+  .chat-shell-card { max-width: 100%; }
+}
+
+/* PATCH 038 — FINAL RESPONSIVE DENSITY
+   Ajuste fino para 1920x1080 em zoom 100%, mantendo o chat aprovado,
+   compactando as demais telas do dashboard e preservando Matrix/neon. */
+:root {
+  --aios-sidebar-w: clamp(244px, 14vw, 274px);
+  --aios-header-h: 76px;
+  --aios-page-pad-x: clamp(18px, 1.8vw, 30px);
+  --aios-page-pad-y: clamp(14px, 1.6vh, 20px);
+}
+
+.aios-main {
+  min-height: 100vh;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.aios-sidebar {
+  width: var(--aios-sidebar-w) !important;
+  padding: 18px 12px !important;
+  gap: 12px;
+}
+.aios-sidebar-brand { margin-bottom: 16px !important; }
+.aios-nav { gap: 5px !important; }
+.aios-nav-link {
+  min-height: 42px !important;
+  padding: 0 12px !important;
+  gap: 11px !important;
+  border-radius: 13px !important;
+  font-size: 13.5px !important;
+}
+.aios-nav-link span { width: 20px !important; height: 20px !important; font-size: 17px !important; }
+.aios-session-card {
+  padding: 13px !important;
+  border-radius: 18px !important;
+}
+.aios-user-avatar { width: 42px !important; height: 42px !important; font-size: 18px !important; }
+.aios-session-card strong { font-size: 13.5px !important; }
+.aios-session-card p { font-size: 11.5px !important; }
+.aios-session-card em { font-size: 11px !important; }
+.aios-session-card form { padding-top: 12px !important; }
+.aios-session-card button { min-height: 38px !important; border-radius: 12px !important; font-size: 13px !important; }
+
+.aios-header {
+  min-height: var(--aios-header-h) !important;
+  height: var(--aios-header-h) !important;
+  padding: 14px var(--aios-page-pad-x) !important;
+}
+.aios-header .aios-kicker { font-size: 10px !important; letter-spacing: .28em !important; margin-bottom: 3px !important; }
+.aios-header h1 { font-size: clamp(20px, 1.65vw, 25px) !important; }
+.aios-header p { margin-top: 5px !important; font-size: 12.5px !important; }
+.aios-status { height: 36px !important; padding: 0 14px !important; font-size: 13px !important; }
+.aios-theme-button { width: 38px !important; height: 38px !important; border-radius: 13px !important; }
+
+.aios-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 18vw, 320px) !important;
+  gap: 16px !important;
+  padding: var(--aios-page-pad-y) var(--aios-page-pad-x) 18px !important;
+}
+.aios-content-column,
+.aios-right-column { gap: 14px !important; }
+.aios-metrics-grid { gap: 10px !important; }
+.aios-metric {
+  min-height: 88px !important;
+  padding: 14px !important;
+  border-radius: 17px !important;
+}
+.aios-metric span { font-size: 10px !important; letter-spacing: .18em !important; }
+.aios-metric strong { margin-top: 7px !important; font-size: clamp(23px, 1.8vw, 30px) !important; }
+.aios-metric p { margin-top: 5px !important; font-size: 12px !important; line-height: 1.35 !important; }
+.aios-panel {
+  padding: 16px !important;
+  border-radius: 18px !important;
+}
+.aios-panel-grid { gap: 14px !important; }
+.aios-panel h2 { font-size: clamp(17px, 1.25vw, 21px) !important; }
+.aios-panel p { font-size: 13px !important; line-height: 1.48 !important; }
+.aios-panel-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; margin-bottom: 10px !important; }
+.aios-action-grid,
+.aios-project-grid { gap: 9px !important; margin-top: 14px !important; }
+.aios-action-grid a,
+.aios-project-grid div,
+.aios-project-grid .new-project,
+.quick-actions a,
+.context-panel a {
+  padding: 12px !important;
+  border-radius: 13px !important;
+  font-size: 13px !important;
+}
+.timeline p { margin: 12px 0 !important; font-size: 13px !important; }
+.context-panel p { margin: 12px 0 !important; }
+.context-panel span { margin-bottom: 4px !important; font-size: 10px !important; letter-spacing: .16em !important; }
+.context-panel .aios-avatar-card,
+.aios-right-column .aios-avatar-card.is-large { min-height: 360px !important; }
+.aios-avatar-card { padding: 18px !important; border-radius: 22px !important; }
+.aios-avatar-stage { width: min(220px, 80%) !important; height: 220px !important; }
+.aios-avatar-photo { width: 188px !important; height: 188px !important; }
+.aios-avatar-card h2 { font-size: 23px !important; }
+.aios-avatar-card p { font-size: 13px !important; }
+.aios-avatar-card small { font-size: 12px !important; }
+
+/* Compacta paginas internas que usam utilitários Tailwind no dashboard */
+.aios-main > section:not(.chat-os):not(.psfhome-shell) {
+  padding: var(--aios-page-pad-y) var(--aios-page-pad-x) 22px !important;
+}
+.aios-main > section:not(.chat-os) .rounded-3xl { border-radius: 20px !important; }
+.aios-main > section:not(.chat-os) .p-8,
+.aios-main > section:not(.chat-os) .lg\:p-8,
+.aios-main > section:not(.chat-os) .p-6 { padding: 18px !important; }
+.aios-main > section:not(.chat-os) .p-5 { padding: 14px !important; }
+.aios-main > section:not(.chat-os) .gap-6 { gap: 14px !important; }
+.aios-main > section:not(.chat-os) .gap-4 { gap: 12px !important; }
+.aios-main > section:not(.chat-os) .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 14px !important; }
+.aios-main > section:not(.chat-os) .mt-10 { margin-top: 22px !important; }
+.aios-main > section:not(.chat-os) .mt-8 { margin-top: 18px !important; }
+.aios-main > section:not(.chat-os) .mt-6 { margin-top: 14px !important; }
+.aios-main > section:not(.chat-os) .mt-5 { margin-top: 12px !important; }
+.aios-main > section:not(.chat-os) .mt-4 { margin-top: 10px !important; }
+.aios-main > section:not(.chat-os) .text-3xl { font-size: 1.55rem !important; line-height: 1.12 !important; }
+.aios-main > section:not(.chat-os) .text-2xl { font-size: 1.35rem !important; }
+.aios-main > section:not(.chat-os) .text-xl { font-size: 1.08rem !important; }
+.aios-main > section:not(.chat-os) input,
+.aios-main > section:not(.chat-os) select,
+.aios-main > section:not(.chat-os) textarea {
+  min-height: 42px !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+}
+.aios-main > section:not(.chat-os) textarea { min-height: 84px !important; }
+.aios-main > section:not(.chat-os) button { border-radius: 12px !important; }
+
+/* Chat aprovado, recalibrado para parecer o zoom 75% em 100% do navegador */
+.chat-os {
+  height: calc(100vh - var(--aios-header-h)) !important;
+  overflow: hidden !important;
+  padding: 16px clamp(20px, 2vw, 34px) 18px !important;
+}
+.chat-shell-card {
+  height: 100% !important;
+  max-width: min(1620px, calc(100vw - var(--aios-sidebar-w) - 54px)) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border-radius: 24px !important;
+}
+.chat-avatar-dock {
+  gap: 10px !important;
+  padding: 4px !important;
+  border-radius: 22px !important;
+}
+.chat-avatar-card {
+  min-height: 94px !important;
+  grid-template-columns: 92px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  padding: 12px 16px !important;
+  border-radius: 20px !important;
+}
+.chat-avatar-card::after { display: none !important; }
+.chat-avatar-photo {
+  width: 78px !important;
+  height: 78px !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--active-primary) 72%, transparent) !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 0 28px color-mix(in srgb, var(--active-primary) 26%, transparent) !important;
+}
+.chat-avatar-info strong { font-size: clamp(22px, 1.7vw, 31px) !important; }
+.chat-avatar-info small { font-size: 13px !important; }
+.chat-avatar-info em { font-size: 11px !important; }
+.chat-stream {
+  min-height: 0 !important;
+  gap: 12px !important;
+  padding: 8px 4px 10px !important;
+}
+.chat-bubble {
+  width: min(930px, 82%) !important;
+  padding: 16px 20px !important;
+  border-radius: 19px !important;
+  line-height: 1.52 !important;
+  font-size: 14px !important;
+}
+.chat-assistant header { margin-bottom: 8px !important; }
+.chat-assistant footer { margin-top: 10px !important; }
+.chat-composer-dock {
+  grid-template-columns: minmax(0, 1fr) 68px !important;
+  gap: 10px !important;
+  padding-top: 10px !important;
+}
+.chat-composer-dock textarea {
+  min-height: 50px !important;
+  height: auto;
+  max-height: 144px !important;
+  padding: 13px 16px !important;
+  border-radius: 18px !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  overflow-y: auto !important;
+}
+.chat-composer-dock button {
+  min-height: 50px !important;
+  border-radius: 18px !important;
+  font-size: 22px !important;
+}
+.chat-composer-dock span { font-size: 10.5px !important; }
+
+@media (min-width: 1700px) and (min-height: 900px) {
+  .aios-dashboard-grid { grid-template-columns: minmax(0, 1fr) 310px !important; }
+  .chat-shell-card { max-width: min(1600px, calc(100vw - var(--aios-sidebar-w) - 70px)) !important; }
+}
+
+@media (max-width: 1366px) {
+  :root { --aios-sidebar-w: 232px; --aios-header-h: 72px; }
+  .aios-dashboard-grid { grid-template-columns: 1fr !important; }
+  .aios-right-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chat-shell-card { max-width: calc(100vw - var(--aios-sidebar-w) - 34px) !important; }
+}
+
+@media (max-width: 980px) {
+  :root { --aios-sidebar-w: 0px; --aios-header-h: auto; }
+  .aios-sidebar { display: none !important; }
+  .aios-header { height: auto !important; min-height: 72px !important; }
+  .chat-os { height: auto !important; min-height: calc(100vh - 72px); overflow: visible !important; }
+  .chat-shell-card { max-width: 100% !important; height: min(820px, calc(100vh - 108px)) !important; }
+  .chat-avatar-dock { grid-template-columns: 1fr !important; }
+  .chat-avatar-card { min-height: 88px !important; }
+  .chat-bubble { width: 100% !important; }
+}
+
+/* PATCH 043D - Project Memory / Landing CSS recovery */
+.psfhome-anagram-definitions {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 16px;
+  padding: 18px;
+  border: 1px solid rgba(148,163,184,.14);
+  border-radius: 22px;
+  background: rgba(255,255,255,.035);
+}
+.psfhome-anagram .psfhome-anagram-definitions p {
+  margin: 0;
+  color: #d8e6fb;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.psfhome-anagram .psfhome-anagram-definitions strong {
+  color: #7dd3fc;
+}
+.psfhome-anagram .psfhome-anagram-myth {
+  margin-top: 12px;
+  color: #aab8ce;
+  line-height: 1.7;
+}
+.project-context-bar {
+  display: grid;
+  grid-template-columns: auto minmax(260px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,.14);
+  border-radius: 18px;
+  background: rgba(0,0,0,.18);
+  color: #d7e4f8;
+}
+.project-context-bar > span {
+  color: #8ea0b9;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.project-context-bar select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--active-primary) 34%, rgba(255,255,255,.12));
+  border-radius: 13px;
+  background: rgba(6, 12, 27, .86);
+  color: #fff;
+  outline: none;
+  padding: 9px 12px;
+  font-weight: 800;
+}
+.project-context-bar button {
+  border: 1px solid color-mix(in srgb, var(--active-primary) 48%, rgba(255,255,255,.12));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--active-primary) 12%, rgba(255,255,255,.04));
+  color: #fff;
+  font-weight: 900;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+.project-context-bar small {
+  color: #8ea0b9;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.projects-memory-page {
+  padding: 22px 34px 34px;
+  display: grid;
+  gap: 18px;
+}
+.projects-memory-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.projects-memory-actions button,
+.projects-memory-actions a {
+  border: 1px solid color-mix(in srgb, var(--active-primary) 38%, rgba(255,255,255,.12));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--active-primary) 10%, rgba(255,255,255,.035));
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.projects-memory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.project-memory-card {
+  border: 1px solid rgba(148,163,184,.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(11,18,36,.72), rgba(5,11,26,.84));
+  padding: 18px;
+  color: #eaf2ff;
+  box-shadow: 0 24px 80px rgba(0,0,0,.22);
+}
+.project-memory-card strong { display: block; font-size: 18px; color: #fff; }
+.project-memory-card p { min-height: 44px; margin: 8px 0 12px; color: #a9b7ca; line-height: 1.45; }
+.project-memory-card footer { display: flex; gap: 8px; flex-wrap: wrap; color: #8ea0b9; font-size: 12px; }
+@media (max-width: 980px) {
+  .project-context-bar { grid-template-columns: 1fr; }
+  .project-context-bar small { white-space: normal; }
+  .projects-memory-grid { grid-template-columns: 1fr; }
+}
