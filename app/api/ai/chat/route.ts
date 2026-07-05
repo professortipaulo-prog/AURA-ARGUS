@@ -9,7 +9,7 @@ function friendlyAIError(error: unknown) {
   const message = error instanceof Error ? error.message : 'Erro desconhecido ao chamar o provedor de IA.';
 
   if (/model|modelo|not found|404/i.test(message)) {
-    return 'Não foi possível usar o modelo solicitado. O AURA/ARGUS tentou selecionar automaticamente outro modelo disponível. Verifique /api/ai/models se o problema continuar.';
+    return 'Não foi possível usar o modelo solicitado. O AURA/ARGUS tentou selecionar automaticamente outro modelo disponível.';
   }
 
   if (/api key|chave|authentication|auth|permission|401|403/i.test(message)) {
@@ -38,19 +38,21 @@ export async function POST(request: Request) {
 
   const provider = body.provider as AIProviderId | undefined;
   if (provider && provider !== 'anthropic' && provider !== 'gemini') {
-    return NextResponse.json(
-      { ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' }, { status: 400 });
   }
 
   const persona = normalizePersona(body.persona);
 
   try {
     const { user, identity } = await getCurrentUserIdentity();
-    const projectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
+    const requestedProjectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
+
     const emptyMemoryContext = { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] };
-    const memory = user?.id ? await getMemoryContext(user.id, 10, body.message, projectId) : { context: emptyMemoryContext, error: null };
+    const memory = user?.id
+      ? await getMemoryContext(user.id, 12, body.message, requestedProjectId)
+      : { context: emptyMemoryContext, error: null };
+
+    const activeProjectId = requestedProjectId ?? memory.context.project?.id ?? null;
     const memoryPrompt = buildMemoryPrompt(memory.context, body.message);
     const systemPrompt = buildPersonaSystemPrompt({
       persona,
@@ -58,18 +60,21 @@ export async function POST(request: Request) {
       memoryPrompt,
       extraSystemPrompt: body.systemPrompt
     });
+
     const result = await sendChat({ message: body.message, provider, model: body.model, persona, systemPrompt });
 
     let sessionId = body.sessionId ?? null;
     let memorySaved = false;
+    let memoryRecorded = false;
     let memoryError: string | null = null;
 
     if (user?.id) {
       try {
         const saved = await saveChatTurn({
           userId: user.id,
+          userEmail: user.email ?? null,
           sessionId,
-          projectId,
+          projectId: activeProjectId,
           persona,
           userMessage: body.message,
           assistantMessage: result.response,
@@ -78,6 +83,7 @@ export async function POST(request: Request) {
         });
         sessionId = saved.sessionId;
         memorySaved = true;
+        memoryRecorded = saved.memoryRecorded;
       } catch (err) {
         memoryError = err instanceof Error ? err.message : 'Não foi possível salvar a memória da conversa.';
       }
@@ -86,10 +92,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       identityApplied: Boolean(identity),
-      projectId,
+      projectId: activeProjectId,
       project: memory.context.project,
       memoryApplied: memory.context.projectMemories.length > 0 || memory.context.importantMemories.length > 0 || memory.context.relevantMemories.length > 0 || memory.context.recentSessions.length > 0,
       memorySaved,
+      memoryRecorded,
       memoryError,
       sessionId,
       persona: persona === 'argus' ? 'ARGUS' : 'AURA',

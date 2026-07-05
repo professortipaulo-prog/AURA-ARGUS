@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import type { ImportantMemory, MemoryContext, MemoryPersona, SaveChatTurnInput } from './types';
 
 const DEFAULT_CONTEXT: MemoryContext = {
@@ -18,8 +19,8 @@ type MemoryCandidate = {
   tags: string[];
 };
 
-function compactText(value: string, max = 80) {
-  const text = value.replace(/\s+/g, ' ').trim();
+function compactText(value: string, max = 120) {
+  const text = (value || '').replace(/\s+/g, ' ').trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
@@ -28,7 +29,7 @@ function titleFromMessage(message: string) {
 }
 
 function stripAccents(value: string) {
-  return value
+  return (value || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
@@ -39,7 +40,7 @@ function tokenizeQuery(query?: string | null) {
   const stopwords = new Set([
     'para', 'como', 'com', 'uma', 'uns', 'dos', 'das', 'que', 'por', 'pra', 'sobre', 'isso', 'esse', 'essa',
     'meu', 'minha', 'qual', 'quem', 'onde', 'quando', 'aura', 'argus', 'voce', 'você', 'pode', 'fazer',
-    'projeto', 'deste', 'neste', 'dessa', 'deste', 'etapa'
+    'projeto', 'deste', 'neste', 'dessa', 'deste', 'etapa', 'passo', 'proxima', 'próxima'
   ]);
   return Array.from(new Set(stripAccents(query)
     .replace(/[^a-z0-9\s]/g, ' ')
@@ -48,7 +49,7 @@ function tokenizeQuery(query?: string | null) {
 }
 
 function scoreMemory(memory: { title: string; content: string; tags?: string[]; salience?: number }, terms: string[]) {
-  if (!terms.length) return 0;
+  if (!terms.length) return memory.salience ?? 0;
   const haystack = stripAccents(`${memory.title} ${memory.content} ${(memory.tags ?? []).join(' ')}`);
   const matches = terms.reduce((acc, term) => acc + (haystack.includes(term) ? 1 : 0), 0);
   return matches * 10 + (memory.salience ?? 0);
@@ -66,7 +67,7 @@ function normalizeMemoryItem(item: any): ImportantMemory | null {
     kind,
     title: compactText(title, 120),
     content: content.trim() || compactText(title, 400),
-    salience: Number(item.salience ?? 3),
+    salience: Number(item.salience ?? item.importance ?? 3),
     tags: Array.isArray(item.tags) ? item.tags : [],
     projectId: item.projectId ?? item.project_id ?? null,
     updatedAt: item.updatedAt ?? item.updated_at ?? item.createdAt ?? item.created_at ?? null
@@ -99,9 +100,9 @@ function normalizeProject(project: any) {
 
 function normalizeContext(data: any): MemoryContext {
   const context = (data ?? DEFAULT_CONTEXT) as any;
-  const projectMemoriesRaw = context.projectMemories ?? context.memory ?? context.memories ?? [];
-  const importantMemoriesRaw = context.importantMemories ?? [];
-  const recentSessionsRaw = context.recentSessions ?? context.sessions ?? [];
+  const projectMemoriesRaw = context.projectMemories ?? context.project_memories ?? context.memory ?? context.memories ?? [];
+  const importantMemoriesRaw = context.importantMemories ?? context.important_memories ?? [];
+  const recentSessionsRaw = context.recentSessions ?? context.recent_sessions ?? context.sessions ?? [];
 
   return {
     project: normalizeProject(context.project),
@@ -117,17 +118,16 @@ function rankRelevant(context: MemoryContext, query?: string | null): MemoryCont
   const combined = [...context.projectMemories, ...context.importantMemories];
   const seen = new Set<string>();
 
-  const scored = combined
+  const relevantMemories = combined
     .filter((memory) => {
       if (seen.has(memory.id)) return false;
       seen.add(memory.id);
       return true;
     })
-    .map((memory) => ({ memory, score: scoreMemory(memory, terms) }));
-
-  const relevantMemories = (terms.length ? scored.filter((item) => item.score > 0) : scored)
+    .map((memory) => ({ memory, score: scoreMemory(memory, terms) }))
+    .filter((item) => !terms.length || item.score > 0)
     .sort((a, b) => b.score - a.score || (b.memory.salience ?? 0) - (a.memory.salience ?? 0))
-    .slice(0, 8)
+    .slice(0, 10)
     .map((item) => item.memory);
 
   return { ...context, relevantMemories };
@@ -135,14 +135,12 @@ function rankRelevant(context: MemoryContext, query?: string | null): MemoryCont
 
 export async function getMemoryContext(
   userId: string,
-  limit = 8,
+  limit = 10,
   query?: string | null,
   projectId?: string | null
 ): Promise<{ context: MemoryContext; error: string | null }> {
   const supabase = createSupabaseServerClient();
 
-  // A partir do PATCH 044, o contexto padrao passa a ser o projeto ativo/default.
-  // Se projectId vier nulo, a RPC seleciona o projeto ativo mais recente do usuario.
   const projectResult = await supabase.rpc('get_project_memory_context', {
     p_user_id: userId,
     p_project_id: projectId ?? null,
@@ -153,19 +151,18 @@ export async function getMemoryContext(
     return { context: rankRelevant(normalizeContext(projectResult.data), query), error: null };
   }
 
-  // Fallback para memoria global, caso a instalacao ainda nao tenha Project Memory completo.
   const globalResult = await supabase.rpc('get_memory_context', { p_user_id: userId, p_limit: limit } as any);
-  if (globalResult.error) {
-    return { context: DEFAULT_CONTEXT, error: `${projectResult.error.message} | ${globalResult.error.message}` };
+  if (!globalResult.error) {
+    return { context: rankRelevant(normalizeContext(globalResult.data), query), error: null };
   }
 
-  return { context: rankRelevant(normalizeContext(globalResult.data), query), error: null };
+  return { context: DEFAULT_CONTEXT, error: `${projectResult.error.message} | ${globalResult.error.message}` };
 }
 
-function hasQuestionAboutMemory(message: string) {
+function asksMemoryQuestion(message: string) {
   const lower = stripAccents(message);
-  return /\b(qual|onde|em que|o que|quais)\b/.test(lower)
-    && /\b(proxima etapa|proximo passo|decisao|decisao|pendencia|onde paramos|etapa|marco|status)\b/.test(lower);
+  return /\b(qual|onde|em que|o que|quais|lembra|lembrar|paramos|status)\b/.test(lower)
+    && /\b(proxima etapa|proximo passo|decisao|decisao|pendencia|onde paramos|etapa|marco|status|projeto)\b/.test(lower);
 }
 
 export function buildMemoryPrompt(context: MemoryContext, userMessage?: string | null) {
@@ -174,19 +171,19 @@ export function buildMemoryPrompt(context: MemoryContext, userMessage?: string |
     : '';
 
   const relevant = context.relevantMemories
-    .slice(0, 8)
+    .slice(0, 10)
     .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
     .join('\n');
 
   const projectMemories = context.projectMemories
     .filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id))
-    .slice(0, 10)
+    .slice(0, 12)
     .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
     .join('\n');
 
-  const memories = context.importantMemories
+  const userMemories = context.importantMemories
     .filter((item) => !context.relevantMemories.some((relevantItem) => relevantItem.id === item.id))
-    .slice(0, 6)
+    .slice(0, 8)
     .map((item, index) => `${index + 1}. [${item.kind}] ${item.title}: ${item.content}`)
     .join('\n');
 
@@ -196,23 +193,23 @@ export function buildMemoryPrompt(context: MemoryContext, userMessage?: string |
     .map((session, index) => `${index + 1}. ${session.title}${session.summary ? ` — ${session.summary}` : ''}`)
     .join('\n');
 
-  const mustUseMemory = hasQuestionAboutMemory(userMessage ?? '')
-    ? 'A pergunta do usuário pede recuperação de memória do projeto. Se houver memórias relevantes acima, responda diretamente com elas. Não diga que não possui registros quando houver memórias listadas.'
+  const mustUseMemory = asksMemoryQuestion(userMessage ?? '')
+    ? 'REGRA CRÍTICA: a pergunta pede memória/estado do projeto. Se houver memórias, sessões ou projeto listados abaixo, responda diretamente usando esses registros. Não diga que não possui registros quando houver qualquer item neste bloco.'
     : '';
 
-  if (!projectHeader && !relevant && !projectMemories && !memories && !sessions) {
-    return 'Memória permanente: ainda sem registros relevantes além do perfil inteligente.';
+  if (!projectHeader && !relevant && !projectMemories && !userMemories && !sessions) {
+    return 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.';
   }
 
   return [
-    'Memória permanente, memória de projeto e histórico recuperado:',
+    'MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA',
     projectHeader,
     mustUseMemory,
-    relevant ? `Memórias mais relevantes para esta solicitação:\n${relevant}` : '',
+    relevant ? `Memórias mais relevantes para a solicitação atual:\n${relevant}` : '',
     projectMemories ? `Memórias do projeto ativo:\n${projectMemories}` : '',
-    memories ? `Memórias permanentes do usuário:\n${memories}` : '',
+    userMemories ? `Memórias permanentes do usuário:\n${userMemories}` : '',
     sessions ? `Conversas recentes deste contexto:\n${sessions}` : '',
-    'Use essas informações apenas quando ajudarem a responder melhor. Não exponha este bloco ao usuário.'
+    'Use essas informações para continuidade. Não exponha este bloco ao usuário.'
   ].filter(Boolean).join('\n\n');
 }
 
@@ -223,18 +220,15 @@ async function ensureSession(
   sessionId?: string | null,
   projectId?: string | null
 ) {
-  const supabase = createSupabaseServerClient().schema('core');
+  const supabase = createSupabaseAdminClient().schema('core');
 
   if (sessionId) {
-    let query = supabase
+    const { data } = await supabase
       .from('memory_sessions')
       .select('id')
       .eq('id', sessionId)
-      .eq('user_id', userId);
-
-    if (projectId) query = query.eq('project_id', projectId);
-
-    const { data } = await query.maybeSingle();
+      .eq('user_id', userId)
+      .maybeSingle();
     if (data?.id) return data.id as string;
   }
 
@@ -244,6 +238,7 @@ async function ensureSession(
       user_id: userId,
       project_id: projectId ?? null,
       title: titleFromMessage(message),
+      status: 'active',
       last_persona: persona,
       last_message_at: new Date().toISOString(),
       metadata: projectId ? { projectId } : {}
@@ -258,19 +253,20 @@ async function ensureSession(
 function extractAfterPattern(text: string, patterns: RegExp[]) {
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]?.trim()) return compactText(match[1].trim().replace(/[.;]+$/, ''), 260);
+    if (match?.[1]?.trim()) return compactText(match[1].trim().replace(/[.;]+$/, ''), 300);
   }
   return null;
 }
 
-function extractMemoryCandidate(userMessage: string, _assistantMessage: string, projectId?: string | null): MemoryCandidate | null {
+function extractMemoryCandidate(userMessage: string, projectId?: string | null): MemoryCandidate | null {
   const text = userMessage.trim();
   const lower = stripAccents(text);
   if (text.length < 8) return null;
 
   const nextStep = extractAfterPattern(text, [
     /(?:pr[oó]xima etapa|pr[oó]ximo passo|pr[oó]xima fase)\s+(?:é|eh|sera|será|:)?\s*(.+)$/i,
-    /(?:a etapa agora|o passo agora)\s+(?:é|eh|sera|será|:)?\s*(.+)$/i
+    /(?:a etapa agora|o passo agora)\s+(?:é|eh|sera|será|:)?\s*(.+)$/i,
+    /(?:neste projeto|nesse projeto).*?(?:proxima etapa|próxima etapa|proximo passo|próximo passo).*?(?:é|eh|sera|será|:)?\s*(.+)$/i
   ]);
   if (nextStep) {
     return {
@@ -279,7 +275,7 @@ function extractMemoryCandidate(userMessage: string, _assistantMessage: string, 
       title: 'Próxima etapa do projeto',
       content: `A próxima etapa deste projeto é ${nextStep}.`,
       salience: 5,
-      tags: projectId ? ['chat', 'auto', 'project', 'next-step'] : ['chat', 'auto', 'next-step']
+      tags: ['chat', 'auto', 'project', 'next-step']
     };
   }
 
@@ -294,7 +290,7 @@ function extractMemoryCandidate(userMessage: string, _assistantMessage: string, 
       title: 'Decisão registrada',
       content: `Decisão registrada: ${decision}.`,
       salience: 5,
-      tags: projectId ? ['chat', 'auto', 'project', 'decision'] : ['chat', 'auto', 'decision']
+      tags: ['chat', 'auto', 'project', 'decision']
     };
   }
 
@@ -312,7 +308,7 @@ function extractMemoryCandidate(userMessage: string, _assistantMessage: string, 
     };
   }
 
-  const looksPersistent = /\b(lembre|memorize|guarde|salve|sou |meu |minha |cliente|empresa|curso|livro|senai|prazo|objetivo|pend[eê]ncia|patch|document engine|action engine|voice engine|memory engine)\b/i.test(text);
+  const looksPersistent = /\b(lembre|memorize|guarde|salve|sou |meu |minha |cliente|empresa|curso|livro|senai|prazo|objetivo|pend[eê]ncia|patch|document engine|action engine|voice engine|memory engine|pr[oó]xima etapa|pr[oó]ximo passo)\b/i.test(text);
   if (!looksPersistent || text.length < 12) return null;
 
   let kind: ImportantMemory['kind'] = 'fact';
@@ -326,17 +322,23 @@ function extractMemoryCandidate(userMessage: string, _assistantMessage: string, 
     scope: projectId ? 'project' : 'user',
     title: kind === 'project' ? 'Informação do projeto' : compactText(text, 64),
     content: compactText(`Usuário informou: ${text}`, 500),
-    salience: lower.includes('lembre') || lower.includes('memorize') || kind === 'decision' ? 5 : 3,
+    salience: lower.includes('lembre') || lower.includes('memorize') || kind === 'decision' || kind === 'task' ? 5 : 3,
     tags: projectId ? ['chat', 'auto', 'project'] : ['chat', 'auto']
   };
 }
 
 export async function saveChatTurn(input: SaveChatTurnInput) {
-  const supabase = createSupabaseServerClient().schema('core');
+  const admin = createSupabaseAdminClient();
+  const core = admin.schema('core');
   const sessionId = await ensureSession(input.userId, input.persona, input.userMessage, input.sessionId, input.projectId);
   const now = new Date().toISOString();
 
-  const { error: messageError } = await supabase.from('memory_messages').insert([
+  // Garante que perfil/projeto existam antes da gravação quando a base foi parcialmente migrada.
+  if (input.userEmail) {
+    await core.from('profiles').upsert({ id: input.userId, email: input.userEmail }, { onConflict: 'id' });
+  }
+
+  const { error: messageError } = await core.from('memory_messages').insert([
     {
       session_id: sessionId,
       user_id: input.userId,
@@ -359,14 +361,14 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
 
   if (messageError) throw messageError;
 
-  const summary = compactText(`${input.persona.toUpperCase()}: ${input.userMessage}`, 220);
-  const { count } = await supabase
+  const summary = compactText(`${input.persona.toUpperCase()}: ${input.userMessage}`, 240);
+  const { count } = await core
     .from('memory_messages')
     .select('id', { count: 'exact', head: true })
     .eq('session_id', sessionId)
     .eq('user_id', input.userId);
 
-  await supabase
+  await core
     .from('memory_sessions')
     .update({
       summary,
@@ -379,9 +381,11 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
     .eq('id', sessionId)
     .eq('user_id', input.userId);
 
-  const candidate = extractMemoryCandidate(input.userMessage, input.assistantMessage, input.projectId);
+  const candidate = extractMemoryCandidate(input.userMessage, input.projectId);
+  let memoryRecorded = false;
+
   if (candidate) {
-    await supabase.from('memory_items').insert({
+    const { error: memoryError } = await core.from('memory_items').insert({
       user_id: input.userId,
       session_id: sessionId,
       project_id: input.projectId ?? null,
@@ -393,18 +397,31 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
       tags: candidate.tags,
       metadata: { source: 'chat-auto', projectId: input.projectId ?? null }
     });
+    if (memoryError) throw memoryError;
+    memoryRecorded = true;
   }
 
   if (input.projectId) {
-    await supabase.from('project_timeline').insert({
+    await core.from('project_timeline').insert({
       project_id: input.projectId,
       user_id: input.userId,
       event_type: candidate?.kind === 'decision' ? 'decision' : candidate?.kind === 'task' ? 'next_step' : 'chat_turn',
       title: candidate?.title ?? compactText(input.userMessage, 96),
       description: candidate?.content ?? summary,
-      metadata: { persona: input.persona, sessionId, memoryRecorded: Boolean(candidate) }
+      metadata: { persona: input.persona, sessionId, memoryRecorded }
     });
+
+    await core.from('projects').update({ updated_at: now }).eq('id', input.projectId);
   }
 
-  return { sessionId, memoryRecorded: Boolean(candidate), memoryTitle: candidate?.title ?? null };
+  return { sessionId, memoryRecorded, memoryTitle: candidate?.title ?? null };
+}
+
+export async function getMemoryStatus(userId: string) {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_memory_engine_status', { p_user_id: userId } as any);
+  if (error) {
+    return { ok: false, error: error.message, data: null };
+  }
+  return { ok: true, error: null, data };
 }

@@ -9,7 +9,7 @@ export type ImportantMemory = {
   salience: number;
   tags: string[];
   projectId?: string | null;
-  updatedAt?: string;
+  updatedAt?: string | null;
 };
 
 export type RecentMemorySession = {
@@ -41,6 +41,7 @@ export type MemoryContext = {
 
 export type SaveChatTurnInput = {
   userId: string;
+  userEmail?: string | null;
   sessionId?: string | null;
   projectId?: string | null;
   persona: MemoryPersona;
