@@ -1386,3 +1386,79 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   .aios-action-bar,
   .aios-artifact-card { align-items: stretch; flex-direction: column; }
 }
+
+/* AURA_ARGUS_PATCH_051 - Chat processing animation */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.chat-bubble.is-thinking {
+  min-height: 92px;
+}
+.chat-bubble.is-thinking header {
+  margin-bottom: 12px !important;
+}
+.chat-processing {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 34px;
+}
+.chat-processing-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+}
+.chat-processing-wave i {
+  display: block;
+  width: 4px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--active-primary), color-mix(in srgb, var(--active-primary) 40%, #ffffff));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--active-primary) 42%, transparent);
+  animation: chatProcessingWave 1.05s ease-in-out infinite;
+}
+.chat-processing-wave i:nth-child(2) { animation-delay: .10s; }
+.chat-processing-wave i:nth-child(3) { animation-delay: .20s; }
+.chat-processing-wave i:nth-child(4) { animation-delay: .30s; }
+.chat-processing-wave i:nth-child(5) { animation-delay: .40s; }
+.chat-processing-wave i:nth-child(6) { animation-delay: .50s; }
+.chat-processing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.chat-processing-dots i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--active-primary) 84%, white);
+  opacity: .42;
+  animation: chatProcessingDots 1.2s ease-in-out infinite;
+}
+.chat-processing-dots i:nth-child(2) { animation-delay: .16s; }
+.chat-processing-dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes chatProcessingWave {
+  0%, 100% { transform: scaleY(.45); opacity: .48; }
+  45% { transform: scaleY(2.25); opacity: 1; }
+}
+@keyframes chatProcessingDots {
+  0%, 80%, 100% { transform: translateY(0); opacity: .35; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-processing-wave i,
+  .chat-processing-dots i {
+    animation: none !important;
+    opacity: .78;
+  }
+}

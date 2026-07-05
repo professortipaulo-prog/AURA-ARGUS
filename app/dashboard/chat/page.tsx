@@ -281,9 +281,23 @@ export default function ChatPage() {
               <article className={`chat-bubble chat-assistant ${persona} is-thinking is-latest`}>
                 <header>
                   <strong>{active.label}</strong>
-                  <span>processando</span>
+                  <span className="sr-only">processando</span>
                 </header>
-                <p>{active.thinking}</p>
+                <div className="chat-processing" role="status" aria-label={`${active.label} está processando a resposta`}>
+                  <span className="chat-processing-wave" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="chat-processing-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </div>
               </article>
             ) : null}
           </div>
