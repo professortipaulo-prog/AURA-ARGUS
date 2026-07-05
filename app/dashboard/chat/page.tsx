@@ -23,6 +23,13 @@ type ProjectSummary = {
   sessionCount: number;
 };
 
+type LocalMemory = {
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+};
+
 const PERSONAS = {
   aura: {
     label: 'AURA',
@@ -51,15 +58,83 @@ const PERSONAS = {
 const USER_CONTEXT =
   'Contexto permanente do usuário: Paulo da Silva Filho atua na área de Tecnologia, é Gestor Especialista de TI do SENAI Bahia, professor universitário e trabalha com projetos de IA, desenvolvimento curricular, documentos técnicos, sistemas web e consultoria. Prefere respostas objetivas, práticas, técnicas, com contexto e sem enrolação.';
 
+const LOCAL_MEMORY_KEY = 'aura-argus-chat-local-memory-v1';
+const DEFAULT_PROJECT: ProjectSummary = {
+  id: 'aura-argus-public',
+  name: 'AURA/ARGUS AI Operating System',
+  slug: 'aura-argus',
+  description: 'Projeto operacional padrão do AURA/ARGUS para conversas, memória e estabilização técnica.',
+  memoryCount: 0,
+  sessionCount: 0
+};
+
+function compact(value: string, max = 220) {
+  const text = value.replace(/\s+/g, ' ').trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function extractLocalMemories(message: string): LocalMemory[] {
+  const text = message.trim();
+  const memories: LocalMemory[] = [];
+  const nowIso = new Date().toISOString();
+
+  const add = (title: string, content: string, tags: string[]) => {
+    const normalized = compact(content, 320);
+    if (!normalized) return;
+    memories.push({ title, content: normalized, tags, createdAt: nowIso });
+  };
+
+  const banco = text.match(/(?:meu|minha|o)\s+banco(?:\s+principal|\s+de\s+dados)?\s+(?:é|eh|será|:)?\s*(.+)$/i);
+  if (banco?.[1]) add('Banco principal do projeto', `O banco principal utilizado neste projeto é ${banco[1].replace(/[.;]+$/, '').trim()}.`, ['database', 'project']);
+
+  const etapa = text.match(/(?:próxima etapa|proxima etapa|próximo passo|proximo passo)\s+(?:é|eh|será|:)?\s*(.+)$/i);
+  if (etapa?.[1]) add('Próxima etapa do projeto', `A próxima etapa deste projeto é ${etapa[1].replace(/[.;]+$/, '').trim()}.`, ['next-step', 'project']);
+
+  const deploy = text.match(/(?:utilizarei|usarei|vamos usar|será usado)\s+(.+?)\s+(?:para deploy|como deploy|no deploy)/i);
+  if (deploy?.[1]) add('Deploy do projeto', `O deploy do projeto utilizará ${deploy[1].trim()}.`, ['deploy', 'project']);
+
+  const framework = text.match(/(Next\.js\s*14|NextJS\s*14|Next\s*14)\s+como\s+framework/i);
+  if (framework?.[1]) add('Framework do projeto', `O framework do projeto é ${framework[1].trim()}.`, ['framework', 'project']);
+
+  return memories;
+}
+
+function mergeLocalMemories(current: LocalMemory[], incoming: LocalMemory[]) {
+  if (!incoming.length) return current;
+  const byTitle = new Map<string, LocalMemory>();
+  for (const item of current) byTitle.set(item.title.toLowerCase(), item);
+  for (const item of incoming) byTitle.set(item.title.toLowerCase(), item);
+  return Array.from(byTitle.values()).slice(-24);
+}
+
+function loadLocalMemories(): LocalMemory[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = JSON.parse(window.localStorage.getItem(LOCAL_MEMORY_KEY) || '[]');
+    return Array.isArray(data) ? data.filter((item) => item?.title && item?.content).slice(-24) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalMemories(memories: LocalMemory[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOCAL_MEMORY_KEY, JSON.stringify(memories.slice(-24)));
+}
+
+
 function now() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null) {
+function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null, localMemories: LocalMemory[] = []) {
   const projectContext = project
     ? `Projeto ativo no workspace: ${project.name}${project.description ? ` — ${project.description}` : ''}. Responda priorizando este projeto quando a pergunta depender de contexto.`
-    : 'Nenhum projeto ativo foi selecionado.';
-  return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}.`;
+    : 'Projeto ativo no workspace: AURA/ARGUS AI Operating System.';
+  const memoryContext = localMemories.length
+    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT:\n${localMemories.map((item, index) => `${index + 1}. ${item.title}: ${item.content}`).join('\n')}\nRegra crítica: quando o usuário perguntar sobre banco, próxima etapa, framework, deploy ou arquitetura deste projeto, use diretamente a memória local acima e não diga que não possui registro.`
+    : 'MEMÓRIA LOCAL RECUPERADA DO CHAT: ainda sem registros nesta sessão/navegador.';
+  return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}.`;
 }
 
 function AvatarDockCard({ persona, active, onClick }: { persona: Persona; active: boolean; onClick: () => void }) {
@@ -86,6 +161,7 @@ export default function ChatPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [localMemories, setLocalMemories] = useState<LocalMemory[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: PERSONAS.aura.intro, persona: 'aura', time: now(), meta: PERSONAS.aura.meta }
   ]);
@@ -93,7 +169,11 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const active = PERSONAS[persona];
-  const activeProject = useMemo(() => projects.find((project) => project.id === projectId) ?? projects[0] ?? null, [projectId, projects]);
+  const activeProject = useMemo(() => projects.find((project) => project.id === projectId) ?? projects[0] ?? DEFAULT_PROJECT, [projectId, projects]);
+
+  useEffect(() => {
+    setLocalMemories(loadLocalMemories());
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.assistantTheme = persona;
@@ -180,6 +260,15 @@ export default function ChatPage() {
     setInput('');
     setIsSending(true);
 
+    const capturedMemories = extractLocalMemories(text);
+    if (capturedMemories.length) {
+      setLocalMemories((current) => {
+        const next = mergeLocalMemories(current, capturedMemories);
+        saveLocalMemories(next);
+        return next;
+      });
+    }
+
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -187,7 +276,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: text,
           persona: selectedPersona,
-          systemPrompt: buildSystemPrompt(selectedPersona, selectedProject),
+          systemPrompt: buildSystemPrompt(selectedPersona, selectedProject, localMemories),
           sessionId,
           projectId: selectedProject?.id ?? null
         })
@@ -213,7 +302,7 @@ export default function ChatPage() {
           role: 'assistant',
           content: data.response,
           persona: selectedPersona,
-          meta: `${selectedMeta.label} · ${data.provider ?? 'router'} · ${data.model ?? 'modelo automático'}${data.project?.name ? ` · ${data.project.name}` : ''}${data.fallbackUsed ? ' · fallback' : ''}`,
+          meta: `${selectedMeta.label} · ${data.provider ?? 'router'} · ${data.model ?? 'modelo automático'}${data.project?.name ? ` · ${data.project.name}` : selectedProject?.name ? ` · ${selectedProject.name}` : ''}${data.fallbackUsed ? ' · fallback' : ''}`,
           time: now()
         }
       ]);

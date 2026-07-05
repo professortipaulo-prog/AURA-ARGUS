@@ -548,6 +548,16 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .psfhome-btn-primary { border-color: transparent; background: linear-gradient(135deg, #7c3aed, #22d3ee); box-shadow: 0 18px 60px rgba(34,211,238,.18); }
 .psfhome-btn-ghost, .psfhome-btn-glass { background: rgba(255,255,255,.055); backdrop-filter: blur(12px); }
 .psfhome-btn-large { min-height: 70px; padding-inline: 34px; border-radius: 24px; font-size: 19px; }
+.psfhome-btn-disabled,
+.psfhome-btn-disabled:hover {
+  cursor: not-allowed;
+  opacity: .48;
+  transform: none;
+  box-shadow: none;
+  filter: grayscale(.15);
+  pointer-events: none;
+}
+
 .psfhome-hero { max-width: 1720px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, .95fr) minmax(420px, .9fr) minmax(360px, .7fr); gap: 28px; align-items: center; }
 .psfhome-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 28px; color: #a9e9ff; font-weight: 900; text-transform: uppercase; letter-spacing: .28em; }
 .psfhome-eyebrow i { width: 11px; height: 11px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 18px #22c55e; }

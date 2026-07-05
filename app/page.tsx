@@ -75,7 +75,7 @@ export default function HomePage() {
 
         <div className="psfhome-actions">
           <a className="psfhome-btn psfhome-btn-ghost" href="/login">Entrar</a>
-          <a className="psfhome-btn psfhome-btn-primary" href="/register">Criar perfil</a>
+          <span className="psfhome-btn psfhome-btn-primary psfhome-btn-disabled" aria-disabled="true" title="Cadastro temporariamente desabilitado durante a estabilização">Criar perfil</span>
         </div>
       </header>
 
@@ -91,7 +91,7 @@ export default function HomePage() {
 
           <div className="psfhome-cta-row">
             <a className="psfhome-btn psfhome-btn-primary psfhome-btn-large" href="/login">Acessar sistema</a>
-            <a className="psfhome-btn psfhome-btn-glass psfhome-btn-large" href="/register">Criar perfil inicial</a>
+            <span className="psfhome-btn psfhome-btn-glass psfhome-btn-large psfhome-btn-disabled" aria-disabled="true" title="Cadastro temporariamente desabilitado durante a estabilização">Criar perfil inicial</span>
           </div>
 
           <div className="psfhome-card-grid">
