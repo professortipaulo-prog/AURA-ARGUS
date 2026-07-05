@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Sistema operacional profissional de IA para trabalho, documentos, memória e automações.',
   icons: {
     icon: [
-      { url: '/favicon.ico' },
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon.svg', type: 'image/svg+xml' }
     ],
     shortcut: '/favicon.ico'
