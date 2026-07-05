@@ -1,3 +1,5 @@
+import type { AIRouteDecision } from './router-policy';
+
 export type AIProviderId = 'anthropic' | 'gemini';
 export type AIPersonaId = 'aura' | 'argus';
 
@@ -15,7 +17,7 @@ export interface ChatResponseBody {
   provider: AIProviderId;
   model: string;
   response: string;
-  route?: string | null;
+  route?: AIRouteDecision | string | null;
   fallbackUsed?: boolean;
   fallbackFrom?: AIProviderId | null;
 }
