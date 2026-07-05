@@ -50,7 +50,6 @@ export default function LoginPage() {
           {error ? <div className="aios-login-error">{error}</div> : null}
           <button type="submit" disabled={isLoading}>{isLoading ? 'Entrando...' : 'Entrar no sistema'}</button>
         </form>
-        <p className="aios-login-footer">Ainda não tem conta? <Link href="/register">Criar acesso</Link></p>
       </section>
     </main>
   );
