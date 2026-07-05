@@ -18,6 +18,48 @@ function normalizeProject(input: any): ProjectSummary {
   };
 }
 
+async function withProjectCounters(userId: string, project: ProjectSummary): Promise<ProjectSummary> {
+  if (!project.id) return project;
+  const core = createSupabaseServerClient().schema('core');
+  const [memoryResult, sessionResult, latestMemoryResult, latestSessionResult] = await Promise.all([
+    core.from('memory_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('project_id', project.id),
+    core.from('memory_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('project_id', project.id).neq('status', 'deleted'),
+    core.from('memory_items').select('updated_at').eq('user_id', userId).eq('project_id', project.id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+    core.from('memory_sessions').select('last_message_at,updated_at').eq('user_id', userId).eq('project_id', project.id).neq('status', 'deleted').order('updated_at', { ascending: false }).limit(1).maybeSingle()
+  ]);
+
+  const latestMemory = latestMemoryResult.data?.updated_at ?? null;
+  const latestSession = latestSessionResult.data?.last_message_at ?? latestSessionResult.data?.updated_at ?? null;
+  const lastActivityAt = latestSession ?? latestMemory ?? project.lastActivityAt ?? project.updatedAt ?? null;
+
+  return {
+    ...project,
+    memoryCount: memoryResult.error ? project.memoryCount : memoryResult.count ?? project.memoryCount,
+    sessionCount: sessionResult.error ? project.sessionCount : sessionResult.count ?? project.sessionCount,
+    lastActivityAt
+  };
+}
+
+async function listUserProjectsFallback(userId: string, ensured: ProjectSummary | null): Promise<ProjectListResponse> {
+  const core = createSupabaseServerClient().schema('core');
+  const { data, error } = await core
+    .from('projects')
+    .select('id,name,title,slug,description,status,color,icon,created_at,updated_at')
+    .eq('owner_id', userId)
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    const fallbackProjects = ensured ? [await withProjectCounters(userId, ensured)] : [];
+    return { projects: fallbackProjects, activeProject: fallbackProjects[0] ?? ensured };
+  }
+
+  const rawProjects = Array.isArray(data) ? data.map(normalizeProject).filter((project) => project.id) : [];
+  const countedProjects = await Promise.all(rawProjects.map((project) => withProjectCounters(userId, project)));
+  const projects = countedProjects.length ? countedProjects : ensured ? [await withProjectCounters(userId, ensured)] : [];
+  return { projects, activeProject: projects[0] ?? null };
+}
+
 export async function getAuthenticatedUserId() {
   const supabase = createSupabaseServerClient();
   const {
@@ -49,12 +91,14 @@ export async function listUserProjects(userId: string): Promise<ProjectListRespo
   const { data, error } = await supabase.rpc('list_user_projects', { p_user_id: userId });
 
   if (error) {
-    return { projects: ensured ? [ensured] : [], activeProject: ensured };
+    return listUserProjectsFallback(userId, ensured);
   }
 
   const projects = Array.isArray(data) ? data.map(normalizeProject).filter((project) => project.id) : [];
-  const activeProject = projects[0] ?? ensured ?? null;
-  return { projects: projects.length ? projects : ensured ? [ensured] : [], activeProject };
+  const countedProjects = await Promise.all(projects.map((project) => withProjectCounters(userId, project)));
+  const fallbackEnsured = ensured ? await withProjectCounters(userId, ensured) : null;
+  const activeProject = countedProjects[0] ?? fallbackEnsured ?? null;
+  return { projects: countedProjects.length ? countedProjects : fallbackEnsured ? [fallbackEnsured] : [], activeProject };
 }
 
 export async function createUserProject(userId: string, name: string, description?: string | null): Promise<ProjectSummary> {

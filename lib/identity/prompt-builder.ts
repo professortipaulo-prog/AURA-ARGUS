@@ -4,6 +4,34 @@ function list(items: string[], fallback: string) {
   return items.length ? items.join('; ') : fallback;
 }
 
+
+function buildTemporalContext() {
+  const timezone = process.env.AURA_ARGUS_TIMEZONE || 'America/Bahia';
+  const now = new Date();
+  const date = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: timezone,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: '2-digit'
+  }).format(now);
+  const time = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now);
+
+  return [
+    'CONTEXTO TEMPORAL OBRIGATÓRIO:',
+    `Data atual: ${date}.`,
+    `Hora atual: ${time}.`,
+    `Timezone oficial do sistema: ${timezone}.`,
+    'Use esta data/hora como fonte de verdade para perguntas temporais. Não use datas internas do modelo.'
+  ].join('\n');
+}
+
 function userName(identity: IdentityProfile) {
   return identity.context.identity.preferredName || identity.context.identity.fullName || identity.context.identity.email;
 }
@@ -74,6 +102,7 @@ export function buildPersonaSystemPrompt(input: PromptBuildInput) {
 
   return [
     basePersonaPrompt(input.persona),
+    buildTemporalContext(),
     input.identity ? 'IDENTIDADE INTERPRETADA DO USUÁRIO:' : 'IDENTIDADE INTERPRETADA DO USUÁRIO: ainda não disponível.',
     input.identity ? input.identity.systemPrompt : '',
     'INSTRUÇÃO DA PERSONA ATIVA:',
