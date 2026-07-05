@@ -1,15 +1,27 @@
 import { NextResponse } from 'next/server';
 import { sendChat } from '@/lib/ai/ai-router';
 import { getCurrentUserIdentity } from '@/lib/identity/server';
-import { buildMemoryPrompt, getMemoryContext, saveChatTurn } from '@/lib/memory/server';
-import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
+import { getSession } from '@/lib/auth/session';
+import {
+  buildTemporalContext,
+  getOrCreateActiveProject,
+  getProjectMemoryContext,
+  memoryPromptBlock,
+  persistChatTurn,
+  temporalPromptBlock
+} from '@/lib/memory/server';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
+
+type StableChatRequestBody = Partial<ChatRequestBody> & {
+  sessionId?: string | null;
+  projectId?: string | null;
+};
 
 function friendlyAIError(error: unknown) {
   const message = error instanceof Error ? error.message : 'Erro desconhecido ao chamar o provedor de IA.';
 
   if (/model|modelo|not found|404/i.test(message)) {
-    return 'Não foi possível usar o modelo solicitado. O AURA/ARGUS tentou selecionar automaticamente outro modelo disponível.';
+    return 'Não foi possível usar o modelo solicitado. O AURA/ARGUS tentou selecionar automaticamente outro modelo disponível. Verifique os modelos configurados se o problema continuar.';
   }
 
   if (/api key|chave|authentication|auth|permission|401|403/i.test(message)) {
@@ -23,8 +35,32 @@ function normalizePersona(value: unknown): AIPersonaId {
   return value === 'argus' ? 'argus' : 'aura';
 }
 
+function personaBasePrompt(persona: AIPersonaId) {
+  if (persona === 'argus') {
+    return [
+      'Você é ARGUS, Agente de Raciocínio, Gestão, Unificação e Supervisão do sistema AURA/ARGUS.',
+      'Responda sempre como ARGUS, em português do Brasil, com foco técnico, objetivo e operacional.',
+      'Nunca diga que é Gemini, Google, Claude, Anthropic ou um modelo genérico. Você pode mencionar o provedor apenas se o usuário perguntar especificamente sobre a infraestrutura técnica.',
+      'Use o perfil inteligente, a memória recuperada do projeto e o contexto temporal obrigatório antes de responder.',
+      'Se o usuário perguntar data, hora ou prazo do dia, use exclusivamente o contexto temporal obrigatório enviado pelo sistema.'
+    ].join(' ');
+  }
+
+  return [
+    'Você é AURA, Assistente Universal de Raciocínio e Ação do sistema AURA/ARGUS.',
+    'Responda sempre como AURA, em português do Brasil, com foco em clareza, produtividade, escrita, documentos, planejamento e apoio profissional.',
+    'Nunca diga que é Claude, Anthropic, Gemini, Google ou um modelo genérico. Você pode mencionar o provedor apenas se o usuário perguntar especificamente sobre a infraestrutura técnica.',
+    'Use o perfil inteligente, a memória recuperada do projeto e o contexto temporal obrigatório antes de responder.',
+    'Se o usuário perguntar data, hora ou prazo do dia, use exclusivamente o contexto temporal obrigatório enviado pelo sistema.'
+  ].join(' ');
+}
+
+function combinePrompts(parts: Array<string | undefined | null>) {
+  return parts.filter(Boolean).join('\n\n---\n\n');
+}
+
 export async function POST(request: Request) {
-  let body: Partial<ChatRequestBody>;
+  let body: StableChatRequestBody;
 
   try {
     body = await request.json();
@@ -38,71 +74,70 @@ export async function POST(request: Request) {
 
   const provider = body.provider as AIProviderId | undefined;
   if (provider && provider !== 'anthropic' && provider !== 'gemini') {
-    return NextResponse.json({ ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: 'Provedor inválido. Use "anthropic" ou "gemini".' },
+      { status: 400 }
+    );
   }
 
   const persona = normalizePersona(body.persona);
+  const startedAt = Date.now();
 
   try {
-    const { user, identity } = await getCurrentUserIdentity();
-    const requestedProjectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
+    const appSession = await getSession();
+    const { identity } = await getCurrentUserIdentity();
+    const identityPrompt = identity ? (persona === 'argus' ? identity.argusInstruction : identity.auraInstruction) : undefined;
 
-    const emptyMemoryContext = { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] };
-    const memory = user?.id
-      ? await getMemoryContext(user.id, 12, body.message, requestedProjectId)
-      : { context: emptyMemoryContext, error: null };
+    const activeProject = appSession?.userId
+      ? await getOrCreateActiveProject(appSession.userId, appSession.organizationId)
+      : { projectId: body.projectId ?? null, organizationId: null, error: null };
 
-    const activeProjectId = requestedProjectId ?? memory.context.project?.id ?? null;
-    const memoryPrompt = buildMemoryPrompt(memory.context, body.message);
-    const systemPrompt = buildPersonaSystemPrompt({
-      persona,
-      identity,
-      memoryPrompt,
-      extraSystemPrompt: body.systemPrompt
-    });
+    const recoveredMemory = appSession?.userId
+      ? await getProjectMemoryContext(appSession.userId, body.projectId || activeProject.projectId)
+      : { items: [] };
 
-    const result = await sendChat({ message: body.message, provider, model: body.model, persona, systemPrompt });
+    const temporalContext = buildTemporalContext();
+    const systemPrompt = combinePrompts([
+      personaBasePrompt(persona),
+      temporalPromptBlock(temporalContext),
+      memoryPromptBlock(recoveredMemory),
+      identityPrompt ? `Contexto do perfil inteligente do usuário: ${identityPrompt}` : 'Perfil inteligente ainda não disponível ou incompleto.',
+      body.systemPrompt
+    ]);
 
-    let sessionId = body.sessionId ?? null;
-    let memorySaved = false;
-    let memoryRecorded = false;
-    let memoryError: string | null = null;
+    const result = await sendChat({ message: body.message, provider, model: body.model, systemPrompt });
 
-    if (user?.id) {
-      try {
-        const saved = await saveChatTurn({
-          userId: user.id,
-          userEmail: user.email ?? null,
-          sessionId,
-          projectId: activeProjectId,
+    const persistence = appSession?.userId
+      ? await persistChatTurn({
+          userId: appSession.userId,
+          organizationId: activeProject.organizationId ?? appSession.organizationId,
+          projectId: body.projectId || activeProject.projectId,
+          sessionId: body.sessionId ?? null,
           persona,
+          provider: result.provider,
+          model: result.model,
           userMessage: body.message,
           assistantMessage: result.response,
-          provider: result.provider,
-          model: result.model
-        });
-        sessionId = saved.sessionId;
-        memorySaved = true;
-        memoryRecorded = saved.memoryRecorded;
-      } catch (err) {
-        memoryError = err instanceof Error ? err.message : 'Não foi possível salvar a memória da conversa.';
-      }
-    }
+          latencyMs: Date.now() - startedAt
+        })
+      : null;
 
     return NextResponse.json({
       ...result,
-      identityApplied: Boolean(identity),
-      projectId: activeProjectId,
-      project: memory.context.project,
-      memoryApplied: memory.context.projectMemories.length > 0 || memory.context.importantMemories.length > 0 || memory.context.relevantMemories.length > 0 || memory.context.recentSessions.length > 0,
-      memorySaved,
-      memoryRecorded,
-      memoryError,
-      sessionId,
+      identityApplied: Boolean(identityPrompt),
       persona: persona === 'argus' ? 'ARGUS' : 'AURA',
-      route: result.route,
-      fallbackUsed: result.fallbackUsed ?? false,
-      fallbackFrom: result.fallbackFrom ?? null
+      temporalContext,
+      projectId: body.projectId || activeProject.projectId,
+      memoryRecovered: recoveredMemory.items.length,
+      sessionId: persistence?.sessionId ?? body.sessionId ?? null,
+      persistence: persistence
+        ? {
+            userMessageSaved: persistence.userMessageSaved,
+            assistantMessageSaved: persistence.assistantMessageSaved,
+            memorySaved: persistence.memorySaved,
+            error: persistence.error
+          }
+        : null
     });
   } catch (error) {
     if (error instanceof ProviderNotConfiguredError) {
