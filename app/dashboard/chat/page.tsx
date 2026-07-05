@@ -238,17 +238,6 @@ export default function ChatPage() {
             <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
           </div>
 
-          <div className="project-context-bar" aria-label="Projeto ativo">
-            <span>Projeto ativo</span>
-            <select value={activeProject?.id ?? ''} onChange={(event) => handleProjectChange(event.target.value)} disabled={projectsLoading || !projects.length}>
-              {projects.length ? projects.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              )) : <option value="">{projectsLoading ? 'Carregando projetos...' : 'Nenhum projeto encontrado'}</option>}
-            </select>
-            <button type="button" onClick={handleCreateProject}>+ Projeto</button>
-            {activeProject ? <small>{activeProject.memoryCount} memórias · {activeProject.sessionCount} conversas</small> : null}
-          </div>
-
           <div className="chat-stream" ref={scrollRef}>
             {messages.map((msg, index) => {
               const msgPersona = msg.persona ?? persona;
