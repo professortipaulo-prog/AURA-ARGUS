@@ -12,11 +12,51 @@ type MemoryStatus = {
   projects?: number;
 };
 
+type LocalMemoryStatus = {
+  sessions: number;
+  messages: number;
+  memories: number;
+  lastUse: string | null;
+};
+
+const LOCAL_MEMORY_KEY = 'aura-argus-chat-local-memory-v1';
+const LOCAL_MEMORY_STATS_KEY = 'aura-argus-chat-local-stats-v1';
+
+function readLocalStatus(): LocalMemoryStatus {
+  if (typeof window === 'undefined') return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+  try {
+    const statsRaw = window.localStorage.getItem(LOCAL_MEMORY_STATS_KEY);
+    const stats = statsRaw ? JSON.parse(statsRaw) : null;
+    const memoriesRaw = window.localStorage.getItem(LOCAL_MEMORY_KEY);
+    const memories = memoriesRaw ? JSON.parse(memoriesRaw) : [];
+    const memoryCount = Array.isArray(memories) ? memories.length : 0;
+
+    return {
+      sessions: Number(stats?.sessions ?? 0),
+      messages: Number(stats?.messages ?? 0),
+      memories: Math.max(Number(stats?.memories ?? 0), memoryCount),
+      lastUse: typeof stats?.lastUse === 'string' ? stats.lastUse : null
+    };
+  } catch {
+    return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+  }
+}
+
 export default function MemoryPage() {
   const [status, setStatus] = useState<MemoryStatus | null>(null);
+  const [localStatus, setLocalStatus] = useState<LocalMemoryStatus>({ sessions: 0, messages: 0, memories: 0, lastUse: null });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLocalStatus(readLocalStatus());
+
+    function refreshLocalStatus() {
+      setLocalStatus(readLocalStatus());
+    }
+
+    window.addEventListener('storage', refreshLocalStatus);
+    window.addEventListener('focus', refreshLocalStatus);
+
     let active = true;
 
     async function load() {
@@ -41,13 +81,16 @@ export default function MemoryPage() {
 
     return () => {
       active = false;
+      window.removeEventListener('storage', refreshLocalStatus);
+      window.removeEventListener('focus', refreshLocalStatus);
     };
   }, []);
 
-  const sessions = status?.sessions ?? 0;
-  const messages = status?.messages ?? 0;
-  const memories = status?.memories ?? 0;
-  const lastUse = status?.lastUse ? new Date(status.lastUse).toLocaleString('pt-BR') : '—';
+  const sessions = Math.max(status?.sessions ?? 0, localStatus.sessions);
+  const messages = Math.max(status?.messages ?? 0, localStatus.messages);
+  const memories = Math.max(status?.memories ?? 0, localStatus.memories);
+  const lastUseSource = status?.lastUse ?? localStatus.lastUse;
+  const lastUse = lastUseSource ? new Date(lastUseSource).toLocaleString('pt-BR') : '—';
 
   return (
     <>

@@ -59,6 +59,7 @@ const USER_CONTEXT =
   'Contexto permanente do usuário: Paulo da Silva Filho atua na área de Tecnologia, é Gestor Especialista de TI do SENAI Bahia, professor universitário e trabalha com projetos de IA, desenvolvimento curricular, documentos técnicos, sistemas web e consultoria. Prefere respostas objetivas, práticas, técnicas, com contexto e sem enrolação.';
 
 const LOCAL_MEMORY_KEY = 'aura-argus-chat-local-memory-v1';
+const LOCAL_MEMORY_STATS_KEY = 'aura-argus-chat-local-stats-v1';
 const DEFAULT_PROJECT: ProjectSummary = {
   id: 'aura-argus-public',
   name: 'AURA/ARGUS AI Operating System',
@@ -204,6 +205,45 @@ function saveLocalMemories(memories: LocalMemory[]) {
   window.localStorage.setItem(LOCAL_MEMORY_KEY, JSON.stringify(sortLocalMemoriesByPriority(memories).slice(0, 24)));
 }
 
+
+
+type LocalMemoryStats = {
+  sessions: number;
+  messages: number;
+  memories: number;
+  lastUse: string | null;
+};
+
+function readLocalMemoryStats(): LocalMemoryStats {
+  if (typeof window === 'undefined') return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+  try {
+    const raw = window.localStorage.getItem(LOCAL_MEMORY_STATS_KEY);
+    const data = raw ? JSON.parse(raw) : null;
+    return {
+      sessions: Number(data?.sessions ?? 0),
+      messages: Number(data?.messages ?? 0),
+      memories: Number(data?.memories ?? 0),
+      lastUse: typeof data?.lastUse === 'string' ? data.lastUse : null
+    };
+  } catch {
+    return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+  }
+}
+
+function writeLocalMemoryStats(stats: LocalMemoryStats) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOCAL_MEMORY_STATS_KEY, JSON.stringify(stats));
+}
+
+function updateLocalMemoryStats(memories: LocalMemory[], messageIncrement = 2) {
+  const current = readLocalMemoryStats();
+  writeLocalMemoryStats({
+    sessions: Math.max(1, current.sessions || 0),
+    messages: Math.max(0, current.messages || 0) + messageIncrement,
+    memories: Math.max(Number(current.memories ?? 0), memories.length),
+    lastUse: new Date().toISOString()
+  });
+}
 
 function now() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -374,6 +414,8 @@ export default function ChatPage() {
       if (data.sessionId && typeof data.sessionId === 'string') {
         setSessionId(data.sessionId);
       }
+
+      updateLocalMemoryStats(promptMemories, 2);
 
       setMessages((prev) => [
         ...prev,
