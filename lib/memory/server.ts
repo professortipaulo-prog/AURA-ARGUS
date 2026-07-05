@@ -50,6 +50,39 @@ function titleFromMessage(message: string) {
   return compactText(message, 72) || 'Nova conversa';
 }
 
+function isQuestionLike(text: string) {
+  const value = stripAccents((text || '').trim());
+  if (!value) return false;
+  if (/[?？]$/.test(value)) return true;
+  return /^(qual|quais|o que|quem|onde|quando|como|por que|porque|resuma|resumo|liste|me diga|voce sabe|você sabe|quanto|quantas|quantos)\b/.test(value);
+}
+
+function isCorruptedMemoryText(text: string) {
+  const value = stripAccents((text || '').replace(/\s+/g, ' ').trim());
+  if (!value) return true;
+  if (isQuestionLike(value)) return true;
+  return [
+    /proxima etapa deste projeto e deste projeto/,
+    /proxima etapa deste projeto e qual/,
+    /proxima etapa deste projeto e resuma/,
+    /proxima etapa deste projeto e o que/,
+    /proxima etapa deste projeto e banco/,
+    /banco principal.*qual banco/,
+    /framework.*qual framework/,
+    /deploy.*qual deploy/,
+    /usuario informou:\s*qual/,
+    /usuario informou:\s*resuma/,
+    /usuario informou:\s*o que/,
+  ].some((pattern) => pattern.test(value));
+}
+
+function cleanExtractedFact(value: string | null) {
+  if (!value) return null;
+  const cleaned = compactText(value.replace(/[.;]+$/, '').trim(), 300);
+  if (!cleaned || isCorruptedMemoryText(cleaned)) return null;
+  return cleaned;
+}
+
 function tokenizeQuery(query?: string | null) {
   if (!query) return [];
   const stopwords = new Set(['para', 'como', 'com', 'uma', 'uns', 'dos', 'das', 'que', 'por', 'pra', 'sobre', 'isso', 'esse', 'essa', 'meu', 'minha', 'qual', 'quais', 'quem', 'onde', 'quando', 'aura', 'argus', 'voce', 'você', 'pode', 'fazer', 'projeto', 'deste', 'neste', 'dessa', 'etapa', 'passo', 'proxima', 'próxima', 'utilizando', 'estou']);
@@ -68,6 +101,7 @@ function normalizeMemoryItem(item: any): ImportantMemory | null {
   const title = String(item.title ?? item.kind ?? item.type ?? 'Memória');
   const content = String(item.content ?? item.description ?? '');
   if (!content.trim() && !title.trim()) return null;
+  if (isCorruptedMemoryText(title) || isCorruptedMemoryText(content)) return null;
   return {
     id: String(item.id ?? `${title}-${content}`),
     kind: String(item.kind ?? item.type ?? 'note'),
@@ -250,7 +284,8 @@ async function ensureSession(userId: string, persona: MemoryPersona, message: st
 function extractAfterPattern(text: string, patterns: RegExp[]) {
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]?.trim()) return compactText(match[1].trim().replace(/[.;]+$/, ''), 300);
+    const fact = cleanExtractedFact(match?.[1] ?? null);
+    if (fact) return fact;
   }
   return null;
 }
@@ -259,6 +294,7 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
   const text = userMessage.trim();
   const lower = stripAccents(text);
   if (text.length < 6) return null;
+  if (isQuestionLike(text)) return null;
 
   const nextStep = extractAfterPattern(text, [
     /(?:pr[oó]xima etapa|pr[oó]ximo passo|pr[oó]xima fase)\s+(?:é|eh|ser[aá]|:)?\s*(.+)$/i,

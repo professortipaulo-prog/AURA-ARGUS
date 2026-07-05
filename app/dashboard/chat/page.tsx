@@ -77,6 +77,31 @@ function cleanFact(value: string) {
   return value.replace(/[.;]+$/, '').trim();
 }
 
+function stripAccents(value: string) {
+  return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function isQuestionLike(text: string) {
+  const value = stripAccents((text || '').trim());
+  if (!value) return false;
+  if (/[?？]$/.test(value)) return true;
+  return /^(qual|quais|o que|quem|onde|quando|como|por que|porque|resuma|resumo|liste|me diga|voce sabe|você sabe|quanto|quantas|quantos)\b/.test(value);
+}
+
+function isCorruptedLocalMemory(text: string) {
+  const value = stripAccents((text || '').replace(/\s+/g, ' ').trim());
+  if (!value) return true;
+  if (isQuestionLike(value)) return true;
+  return [
+    /proxima etapa deste projeto e deste projeto/,
+    /proxima etapa deste projeto e qual/,
+    /proxima etapa deste projeto e resuma/,
+    /banco principal.*qual banco/,
+    /framework.*qual framework/,
+    /deploy.*qual deploy/,
+  ].some((pattern) => pattern.test(value));
+}
+
 function extractLocalMemories(message: string): LocalMemory[] {
   const nowIso = new Date().toISOString();
   const memories: LocalMemory[] = [];
@@ -87,13 +112,14 @@ function extractLocalMemories(message: string): LocalMemory[] {
 
   const add = (title: string, content: string, tags: string[]) => {
     const normalized = compact(content, 360);
-    if (!normalized) return;
+    if (!normalized || isCorruptedLocalMemory(normalized)) return;
     const key = title.toLowerCase();
     if (memories.some((item) => item.title.toLowerCase() === key)) return;
     memories.push({ title, content: normalized, tags, createdAt: nowIso });
   };
 
   const scan = (text: string) => {
+    if (isQuestionLike(text) || isCorruptedLocalMemory(text)) return;
     const banco = text.match(/(?:meu|minha|o)\s+banco(?:\s+principal|\s+de\s+dados)?\s*(?:é|eh|será|sera|:)\s*(.+)$/i);
     if (banco?.[1]) add('Banco principal do projeto', `O banco principal utilizado neste projeto é ${cleanFact(banco[1])}.`, ['database', 'project', 'confirmed']);
 
