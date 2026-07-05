@@ -492,16 +492,26 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
   }
 
   if (input.projectId) {
-    await core.from('project_timeline').insert({
-      project_id: input.projectId,
-      user_id: input.userId,
-      event_type: candidate?.kind === 'decision' ? 'decision' : candidate?.kind === 'task' ? 'next_step' : 'chat_turn',
-      title: candidate?.title ?? compactText(input.userMessage, 96),
-      description: candidate?.content ?? summary,
-      metadata: { persona: input.persona, sessionId, memoryRecorded }
-    });
+    // Timeline e atualização do projeto são complementares. Não devem impedir a gravação
+    // das mensagens/memórias caso a migração de projeto ainda esteja parcial.
+    try {
+      await core.from('project_timeline').insert({
+        project_id: input.projectId,
+        user_id: input.userId,
+        event_type: candidate?.kind === 'decision' ? 'decision' : candidate?.kind === 'task' ? 'next_step' : 'chat_turn',
+        title: candidate?.title ?? compactText(input.userMessage, 96),
+        description: candidate?.content ?? summary,
+        metadata: { persona: input.persona, sessionId, memoryRecorded }
+      });
+    } catch {
+      // Registro de timeline é não bloqueante.
+    }
 
-    await core.from('projects').update({ updated_at: now }).eq('id', input.projectId);
+    try {
+      await core.from('projects').update({ updated_at: now }).eq('id', input.projectId);
+    } catch {
+      // Atualização de contador/atividade será recalculada pelos fallbacks.
+    }
   }
 
   return { sessionId, memoryRecorded, memoryTitle: candidate?.title ?? null };
@@ -697,6 +707,7 @@ export async function persistChatTurn(input: ChatPersistenceCompatInput) {
   try {
     const result = await saveChatTurn({
       userId: input.userId,
+      userEmail: null,
       sessionId: input.sessionId ?? null,
       projectId: input.projectId ?? null,
       persona: input.persona,
