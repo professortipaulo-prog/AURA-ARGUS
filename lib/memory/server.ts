@@ -341,3 +341,61 @@ export function formatLastActivity(value: string | null) {
     minute: '2-digit'
   }).format(new Date(value));
 }
+
+export async function getMemoryContext(userId: string, limit = 12) {
+  try {
+    const admin = createSupabaseAdminClient();
+    const memory = admin.schema('memory');
+
+    const { data, error } = await memory
+      .from('items')
+      .select('id,title,content,type,source,importance,project_id,metadata,created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      return { items: [], memories: [], context: [], error: error.message };
+    }
+
+    const items = data ?? [];
+    return {
+      items,
+      memories: items,
+      context: items,
+      error: null
+    };
+  } catch (error) {
+    return {
+      items: [],
+      memories: [],
+      context: [],
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar memória.'
+    };
+  }
+}
+
+export async function getMemoryStatus(userId: string) {
+  try {
+    const overview = await getMemoryOverview(userId);
+    return {
+      ok: true,
+      data: {
+        operational: true,
+        timezone: TIMEZONE,
+        sessions: overview.sessions,
+        messages: overview.messages,
+        memories: overview.memories,
+        lastActivity: overview.lastActivity,
+        patch: 'PATCH-046-MEMORY-UI-STABILIZATION'
+      },
+      error: null
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      data: null,
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao consultar status da memória.'
+    };
+  }
+}
