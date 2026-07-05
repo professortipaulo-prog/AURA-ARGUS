@@ -1,48 +1,52 @@
 export type MemoryPersona = 'aura' | 'argus';
-export type MemoryProvider = 'anthropic' | 'gemini';
+export type MemoryRole = 'user' | 'assistant' | 'system';
 
-export type ChatPersistenceInput = {
-  userId: string;
-  organizationId: string | null;
+export type ImportantMemory = {
+  id: string;
+  kind: string;
+  title: string;
+  content: string;
+  salience: number;
+  tags: string[];
   projectId?: string | null;
+  updatedAt?: string | null;
+};
+
+export type RecentMemorySession = {
+  id: string;
+  title: string;
+  summary: string | null;
+  messageCount: number;
+  lastPersona: MemoryPersona | null;
+  lastMessageAt: string | null;
+  projectId?: string | null;
+};
+
+export type ProjectMemoryInfo = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  memoryCount?: number;
+  sessionCount?: number;
+} | null;
+
+export type MemoryContext = {
+  project: ProjectMemoryInfo;
+  projectMemories: ImportantMemory[];
+  importantMemories: ImportantMemory[];
+  relevantMemories: ImportantMemory[];
+  recentSessions: RecentMemorySession[];
+};
+
+export type SaveChatTurnInput = {
+  userId: string;
+  userEmail?: string | null;
   sessionId?: string | null;
+  projectId?: string | null;
   persona: MemoryPersona;
-  provider: MemoryProvider;
-  model: string;
   userMessage: string;
   assistantMessage: string;
-  latencyMs?: number | null;
-};
-
-export type PersistedChatTurn = {
-  sessionId: string | null;
-  userMessageSaved: boolean;
-  assistantMessageSaved: boolean;
-  memorySaved: boolean;
-  error: string | null;
-};
-
-export type MemoryOverview = {
-  sessions: number;
-  messages: number;
-  memories: number;
-  lastActivity: string | null;
-};
-
-export type ProjectMemoryContext = {
-  items: Array<{
-    title: string | null;
-    content: string;
-    type: string;
-    createdAt: string | null;
-  }>;
-};
-
-export type TemporalContext = {
-  nowIso: string;
-  datePtBr: string;
-  timePtBr: string;
-  timezone: string;
-  minutesUntilEndOfDay: number;
-  hoursUntilEndOfDay: number;
+  provider?: string | null;
+  model?: string | null;
 };
