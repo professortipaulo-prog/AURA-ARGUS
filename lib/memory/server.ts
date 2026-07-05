@@ -542,3 +542,212 @@ export async function getMemoryStatus(userId: string) {
   };
 }
 
+
+// AURA_ARGUS_PATCH_049 - HOTFIX_CHAT_MEMORY_EXPORTS
+// Backward-compatible exports required by app/api/ai/chat/route.ts.
+const ACTIVE_PROJECT_TITLE = 'AURA/ARGUS';
+const ACTIVE_PROJECT_SLUG = 'aura-argus';
+const TIMEZONE = process.env.AURA_ARGUS_TIMEZONE || 'America/Bahia';
+
+type TemporalContext = {
+  nowIso: string;
+  datePtBr: string;
+  timePtBr: string;
+  timezone: string;
+  minutesUntilEndOfDay: number;
+  hoursUntilEndOfDay: number;
+};
+
+type ProjectMemoryContextCompat = {
+  items: Array<{
+    title: string | null;
+    content: string;
+    type: string;
+    createdAt: string | null;
+  }>;
+};
+
+type ChatPersistenceCompatInput = {
+  userId: string;
+  organizationId?: string | null;
+  projectId?: string | null;
+  sessionId?: string | null;
+  persona: MemoryPersona;
+  provider?: string | null;
+  model?: string | null;
+  userMessage: string;
+  assistantMessage: string;
+  latencyMs?: number | null;
+};
+
+export function buildTemporalContext(date = new Date()): TemporalContext {
+  const datePtBr = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(date);
+  const timePtBr = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(date);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  const second = Number(parts.find((part) => part.type === 'second')?.value || 0);
+  const secondsUntilEndOfDay = Math.max(0, 24 * 60 * 60 - (hour * 3600 + minute * 60 + second));
+  return {
+    nowIso: date.toISOString(),
+    datePtBr,
+    timePtBr,
+    timezone: TIMEZONE,
+    minutesUntilEndOfDay: Math.ceil(secondsUntilEndOfDay / 60),
+    hoursUntilEndOfDay: Number((secondsUntilEndOfDay / 3600).toFixed(2))
+  };
+}
+
+export function temporalPromptBlock(context = buildTemporalContext()) {
+  return [
+    'CONTEXTO TEMPORAL OBRIGATÓRIO:',
+    `Data atual: ${context.datePtBr}.`,
+    `Hora atual: ${context.timePtBr}.`,
+    `Timezone oficial do sistema: ${context.timezone}.`,
+    `Agora em ISO: ${context.nowIso}.`,
+    `Tempo aproximado até terminar o dia: ${context.hoursUntilEndOfDay} horas (${context.minutesUntilEndOfDay} minutos).`,
+    'Use estes dados como verdade. Não invente datas antigas e não use data de treinamento do modelo.'
+  ].join('\n');
+}
+
+export async function getOrCreateActiveProject(userId: string, organizationId?: string | null) {
+  try {
+    const core = createSupabaseAdminClient().schema('core');
+    const { data: existing, error: existingError } = await core
+      .from('projects')
+      .select('id, organization_id')
+      .eq('owner_id', userId)
+      .eq('slug', ACTIVE_PROJECT_SLUG)
+      .maybeSingle();
+    if (existing?.id) {
+      return { projectId: String(existing.id), organizationId: existing.organization_id ?? organizationId ?? null, error: null };
+    }
+    if (existingError && !/not found|schema|column/i.test(existingError.message)) {
+      return { projectId: null, organizationId: organizationId ?? null, error: existingError.message };
+    }
+    const { data: created, error: createError } = await core
+      .from('projects')
+      .insert({
+        organization_id: organizationId ?? null,
+        owner_id: userId,
+        title: ACTIVE_PROJECT_TITLE,
+        name: ACTIVE_PROJECT_TITLE,
+        slug: ACTIVE_PROJECT_SLUG,
+        description: 'Projeto operacional padrão do AURA/ARGUS para conversas, memória e estabilização técnica.',
+        status: 'active',
+        context: { source: 'AURA_ARGUS_PATCH_049-HOTFIX_CHAT_MEMORY_EXPORTS' }
+      } as any)
+      .select('id, organization_id')
+      .single();
+    if (createError) return { projectId: null, organizationId: organizationId ?? null, error: createError.message };
+    return { projectId: String(created.id), organizationId: created.organization_id ?? organizationId ?? null, error: null };
+  } catch (error) {
+    return { projectId: null, organizationId: organizationId ?? null, error: error instanceof Error ? error.message : 'Erro ao localizar projeto ativo.' };
+  }
+}
+
+export async function getProjectMemoryContext(userId: string, projectId?: string | null): Promise<ProjectMemoryContextCompat> {
+  const { context } = await getMemoryContext(userId, 12, null, projectId ?? null);
+  const items = [...context.relevantMemories, ...context.projectMemories, ...context.importantMemories];
+  const seen = new Set<string>();
+  return {
+    items: items
+      .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      })
+      .slice(0, 12)
+      .map((item) => ({
+        title: item.title ?? null,
+        content: item.content,
+        type: item.kind,
+        createdAt: item.updatedAt ?? null
+      }))
+  };
+}
+
+export function memoryPromptBlock(context: ProjectMemoryContextCompat) {
+  if (!context.items.length) {
+    return 'MEMÓRIA DO PROJETO: ainda não há memórias persistidas para este projeto.';
+  }
+  const lines = context.items.map((item, index) => `${index + 1}. [${item.type}] ${item.title ? `${item.title}: ` : ''}${item.content}`);
+  return ['MEMÓRIA DO PROJETO RECUPERADA ANTES DA RESPOSTA:', ...lines, 'Use estas informações para continuidade do projeto.'].join('\n');
+}
+
+export async function persistChatTurn(input: ChatPersistenceCompatInput) {
+  try {
+    const result = await saveChatTurn({
+      userId: input.userId,
+      sessionId: input.sessionId ?? null,
+      projectId: input.projectId ?? null,
+      persona: input.persona,
+      userMessage: input.userMessage,
+      assistantMessage: input.assistantMessage,
+      provider: input.provider ?? null,
+      model: input.model ?? null
+    });
+    return {
+      sessionId: result.sessionId,
+      userMessageSaved: true,
+      assistantMessageSaved: true,
+      memorySaved: result.memoryRecorded,
+      error: null
+    };
+  } catch (error) {
+    return {
+      sessionId: input.sessionId ?? null,
+      userMessageSaved: false,
+      assistantMessageSaved: false,
+      memorySaved: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao persistir conversa.'
+    };
+  }
+}
+
+export type MemoryOverview = {
+  sessions: number;
+  messages: number;
+  memories: number;
+  lastActivity: string | null;
+};
+
+export async function getMemoryOverview(userId: string): Promise<MemoryOverview> {
+  const status = await getMemoryStatus(userId);
+  return {
+    sessions: Number(status.data?.sessions ?? 0),
+    messages: Number(status.data?.messages ?? 0),
+    memories: Number(status.data?.memories ?? 0),
+    lastActivity: status.data?.lastUse ?? status.data?.lastActivity ?? null
+  };
+}
+
+export function formatLastActivity(value: string | null) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
+}
