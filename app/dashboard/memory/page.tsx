@@ -12,9 +12,45 @@ type MemoryStatus = {
   projects?: number;
 };
 
+type LocalMemoryStats = {
+  sessions: number;
+  messages: number;
+  memories: number;
+  lastUse: string | null;
+};
+
+const LOCAL_MEMORY_KEY = 'aura-argus-chat-local-memory-v1';
+const LOCAL_MEMORY_STATS_KEY = 'aura-argus-chat-local-stats-v1';
+
+function readLocalMemoryStats(): LocalMemoryStats {
+  if (typeof window === 'undefined') return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+
+  try {
+    const rawStats = window.localStorage.getItem(LOCAL_MEMORY_STATS_KEY);
+    const parsedStats = rawStats ? JSON.parse(rawStats) : null;
+    const rawMemories = window.localStorage.getItem(LOCAL_MEMORY_KEY);
+    const parsedMemories = rawMemories ? JSON.parse(rawMemories) : [];
+    const memoryCount = Array.isArray(parsedMemories) ? parsedMemories.filter((item) => item?.title && item?.content).length : 0;
+
+    return {
+      sessions: Number(parsedStats?.sessions ?? (memoryCount > 0 ? 1 : 0)),
+      messages: Number(parsedStats?.messages ?? 0),
+      memories: Math.max(Number(parsedStats?.memories ?? 0), memoryCount),
+      lastUse: typeof parsedStats?.lastUse === 'string' ? parsedStats.lastUse : null
+    };
+  } catch {
+    return { sessions: 0, messages: 0, memories: 0, lastUse: null };
+  }
+}
+
 export default function MemoryPage() {
   const [status, setStatus] = useState<MemoryStatus | null>(null);
+  const [localStats, setLocalStats] = useState<LocalMemoryStats>({ sessions: 0, messages: 0, memories: 0, lastUse: null });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalStats(readLocalMemoryStats());
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -44,10 +80,11 @@ export default function MemoryPage() {
     };
   }, []);
 
-  const sessions = status?.sessions ?? 0;
-  const messages = status?.messages ?? 0;
-  const memories = status?.memories ?? 0;
-  const lastUse = status?.lastUse ? new Date(status.lastUse).toLocaleString('pt-BR') : '—';
+  const sessions = Math.max(status?.sessions ?? 0, localStats.sessions);
+  const messages = Math.max(status?.messages ?? 0, localStats.messages);
+  const memories = Math.max(status?.memories ?? 0, localStats.memories);
+  const lastUseIso = status?.lastUse ?? localStats.lastUse;
+  const lastUse = lastUseIso ? new Date(lastUseIso).toLocaleString('pt-BR') : '—';
 
   return (
     <>
