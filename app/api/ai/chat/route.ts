@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const projectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
     const emptyMemoryContext = { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] };
     const memory = user?.id ? await getMemoryContext(user.id, 10, body.message, projectId) : { context: emptyMemoryContext, error: null };
-    const memoryPrompt = buildMemoryPrompt(memory.context);
+    const memoryPrompt = buildMemoryPrompt(memory.context, body.message);
     const systemPrompt = buildPersonaSystemPrompt({
       persona,
       identity,
