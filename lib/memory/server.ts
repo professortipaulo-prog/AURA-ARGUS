@@ -430,18 +430,84 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
 
 export async function getMemoryStatus(userId: string) {
   const core = coreReader();
-  const [sessionsResult, messagesResult, memoriesResult, projectsResult, lastSessionResult] = await Promise.all([
-    core.from('memory_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    core.from('memory_messages').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    core.from('memory_items').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    core.from('projects').select('id', { count: 'exact', head: true }).eq('owner_id', userId).eq('status', 'active'),
-    core.from('memory_sessions').select('last_message_at,updated_at').eq('user_id', userId).order('last_message_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+
+  async function safeCount(table: string, filters: Array<[string, string, any]> = []) {
+    try {
+      let query = core.from(table).select('id', { count: 'exact', head: true });
+      for (const [method, column, value] of filters) {
+        if (method === 'eq') query = query.eq(column, value);
+        if (method === 'neq') query = query.neq(column, value);
+      }
+      const result = await query;
+      if (result.error) return { count: null as number | null, error: result.error.message };
+      return { count: Number(result.count ?? 0), error: null as string | null };
+    } catch (error) {
+      return { count: null as number | null, error: error instanceof Error ? error.message : `Erro ao contar ${table}` };
+    }
+  }
+
+  async function safeLastUse() {
+    try {
+      const { data, error } = await core
+        .from('memory_sessions')
+        .select('last_message_at,updated_at,created_at')
+        .eq('user_id', userId)
+        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data?.last_message_at ?? data?.updated_at ?? data?.created_at ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function fallbackMessagesFromSessions() {
+    try {
+      const { data, error } = await core
+        .from('memory_sessions')
+        .select('message_count')
+        .eq('user_id', userId)
+        .neq('status', 'deleted');
+      if (error || !Array.isArray(data)) return 0;
+      return data.reduce((sum: number, row: any) => sum + Number(row.message_count ?? 0), 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  const [sessionsResult, messagesResult, memoriesResult, projectsResult, lastUse] = await Promise.all([
+    safeCount('memory_sessions', [['eq', 'user_id', userId], ['neq', 'status', 'deleted']]),
+    safeCount('memory_messages', [['eq', 'user_id', userId]]),
+    safeCount('memory_items', [['eq', 'user_id', userId]]),
+    safeCount('projects', [['eq', 'owner_id', userId], ['eq', 'status', 'active']]),
+    safeLastUse()
   ]);
 
-  const fallbackError = sessionsResult.error || messagesResult.error || memoriesResult.error;
-  if (fallbackError) return { ok: false, error: fallbackError.message, data: null };
+  const sessions = Number(sessionsResult.count ?? 0);
+  const messages = messagesResult.count !== null ? Number(messagesResult.count) : await fallbackMessagesFromSessions();
+  const memories = Number(memoriesResult.count ?? 0);
+  const projects = Number(projectsResult.count ?? 0);
 
-  return { ok: true, error: null, data: { migrationApplied: true, sessions: sessionsResult.count ?? 0, messages: messagesResult.count ?? 0, memories: memoriesResult.count ?? 0, projects: projectsResult.count ?? 0, lastUse: lastSessionResult.data?.last_message_at ?? lastSessionResult.data?.updated_at ?? null } };
+  const errors = [sessionsResult, messagesResult, memoriesResult]
+    .map((item) => item.error)
+    .filter(Boolean);
+
+  return {
+    ok: true,
+    error: null,
+    data: {
+      migrationApplied: true,
+      sessions,
+      messages,
+      memories,
+      projects,
+      lastUse,
+      source: 'core.memory_sessions + core.memory_messages + core.memory_items',
+      warnings: errors
+    }
+  };
 }
 
 export type TemporalContext = {
