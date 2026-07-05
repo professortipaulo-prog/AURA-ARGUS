@@ -342,35 +342,27 @@ export function formatLastActivity(value: string | null) {
   }).format(new Date(value));
 }
 
+// PATCH 046 HOTFIX: backward-compatible exports used by legacy API routes.
 export async function getMemoryContext(userId: string, limit = 12) {
   try {
-    const admin = createSupabaseAdminClient();
-    const memory = admin.schema('memory');
-
-    const { data, error } = await memory
-      .from('items')
-      .select('id,title,content,type,source,importance,project_id,metadata,created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      return { items: [], memories: [], context: [], error: error.message };
-    }
-
-    const items = data ?? [];
+    const project = await getOrCreateActiveProject(userId, DEFAULT_ORGANIZATION_ID);
+    const context = await getProjectMemoryContext(userId, project.projectId);
     return {
-      items,
-      memories: items,
-      context: items,
-      error: null
+      error: null,
+      context: {
+        projectId: project.projectId,
+        items: context.items.slice(0, limit),
+        prompt: memoryPromptBlock({ items: context.items.slice(0, limit) })
+      }
     };
   } catch (error) {
     return {
-      items: [],
-      memories: [],
-      context: [],
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar memória.'
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar contexto de memória.',
+      context: {
+        projectId: null,
+        items: [],
+        prompt: memoryPromptBlock({ items: [] })
+      }
     };
   }
 }
@@ -380,22 +372,22 @@ export async function getMemoryStatus(userId: string) {
     const overview = await getMemoryOverview(userId);
     return {
       ok: true,
+      error: null,
       data: {
-        operational: true,
-        timezone: TIMEZONE,
+        applied: true,
+        operational: overview.sessions > 0 || overview.messages > 0 || overview.memories > 0,
+        message: 'Memory Engine aplicado e operacional.',
         sessions: overview.sessions,
         messages: overview.messages,
         memories: overview.memories,
-        lastActivity: overview.lastActivity,
-        patch: 'PATCH-046-MEMORY-UI-STABILIZATION'
-      },
-      error: null
+        lastActivity: overview.lastActivity
+      }
     };
   } catch (error) {
     return {
       ok: false,
-      data: null,
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao consultar status da memória.'
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao consultar status de memória.',
+      data: null
     };
   }
 }

@@ -1,38 +1,80 @@
-# AURA_ARGUS_PATCH_046 - HOTFIX_MEMORY_EXPORTS
+# AURA_ARGUS_PATCH_046-HOTFIX_MEMORY_EXPORTS
 
 ## Objetivo
-Corrigir falha de build na Vercel causada por exports ausentes em `lib/memory/server.ts`.
+Corrigir a falha de build na Vercel causada pela ausência dos exports `getMemoryContext` e `getMemoryStatus` em `lib/memory/server.ts`.
 
 ## Problema corrigido
-As rotas existentes abaixo importavam funções que não estavam mais exportadas:
+A Vercel falhava durante a etapa de validação de tipos com o erro:
 
-- `app/api/memory/context/route.ts` → `getMemoryContext`
-- `app/api/memory/status/route.ts` → `getMemoryStatus`
+```text
+Module '"@/lib/memory/server"' has no exported member 'getMemoryContext'.
+Module '"@/lib/memory/server"' has no exported member 'getMemoryStatus'.
+```
+
+As rotas antigas abaixo ainda dependem desses exports:
+
+```text
+app/api/memory/context/route.ts
+app/api/memory/status/route.ts
+```
 
 ## Arquivo alterado
-- `lib/memory/server.ts`
+```text
+lib/memory/server.ts
+```
 
-## Correção aplicada
-Foram adicionadas funções de compatibilidade:
+## Alteração realizada
+Foram adicionadas funções de compatibilidade no final de `lib/memory/server.ts`:
 
-- `getMemoryContext(userId, limit)`
-- `getMemoryStatus(userId)`
+```text
+getMemoryContext
+getMemoryStatus
+```
 
-A correção preserva o PATCH 046 e evita alteração nas rotas antigas, reduzindo risco de regressão.
+Essas funções reaproveitam a lógica atual do PATCH 046:
 
-## Teste técnico
-- `npm run typecheck` executado com sucesso.
-- `npm run build` compilou e passou pela etapa inicial de build e validação de tipos; o ambiente local encerrou por limite de tempo durante a continuação do build.
+```text
+getOrCreateActiveProject
+getProjectMemoryContext
+memoryPromptBlock
+getMemoryOverview
+```
 
-## Teste esperado no site
-1. Fazer deploy na Vercel.
-2. Abrir o site.
-3. Abrir Memória.
-4. Confirmar que a página carrega com layout.
-5. Abrir Chat IA.
-6. Enviar uma mensagem.
-7. Voltar em Memória e Projetos.
-8. Confirmar que os contadores atualizam.
+## O que não foi alterado
+- Não altera Landing Page.
+- Não altera visual do Chat IA.
+- Não altera `globals.css`.
+- Não cria módulo novo.
+- Não altera banco de dados.
+- Não altera AI Router.
 
-## Status
-Hotfix pronto para aplicar no branch main.
+## Validação técnica
+Validação local executada:
+
+```text
+npx tsc --noEmit
+```
+
+Resultado:
+
+```text
+status=0
+```
+
+O `next build` compilou e passou pela etapa de tipos sem repetir o erro dos exports. A execução completa pode demorar no ambiente local durante geração de páginas, mas o erro informado pela Vercel foi corrigido.
+
+## Instrução de envio para GitHub
+Enviar somente estes arquivos:
+
+```text
+lib/memory/server.ts
+docs/AURA_ARGUS_PATCH_046-HOTFIX_MEMORY_EXPORTS.md
+```
+
+## Teste esperado na Vercel
+Depois do commit, o deploy não deve mais falhar nos imports:
+
+```text
+getMemoryContext
+getMemoryStatus
+```
