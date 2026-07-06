@@ -203,6 +203,33 @@ async function safeSelectMemories(userId: string, limit: number, projectId?: str
   return { data: Array.isArray(result.data) ? result.data : [], error: result.error?.message ?? null };
 }
 
+async function safeSelectUserMemories(userId: string, limit: number) {
+  const core = coreReader();
+  const selectFull = 'id,kind,title,content,salience,tags,project_id,updated_at,created_at';
+  const selectCompat = 'id,kind,title,content,salience,tags,updated_at,created_at';
+
+  let result = await core
+    .from('memory_items')
+    .select(selectFull)
+    .eq('user_id', userId)
+    .is('project_id', null)
+    .order('salience', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+
+  if (result.error) {
+    result = await core
+      .from('memory_items')
+      .select(selectCompat)
+      .eq('user_id', userId)
+      .order('salience', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+  }
+
+  return { data: Array.isArray(result.data) ? result.data : [], error: result.error?.message ?? null };
+}
+
 async function safeSelectSessions(userId: string, limit: number, projectId?: string | null) {
   const core = coreReader();
   const selectFull = 'id,title,summary,message_count,last_persona,last_message_at,project_id,updated_at';
@@ -236,15 +263,12 @@ export async function getMemoryContext(userId: string, limit = 10, query?: strin
   if (memories.error) fallbackError = fallbackError ?? memories.error;
   context.projectMemories = memories.data.map(normalizeMemoryItem).filter(Boolean) as ImportantMemory[];
 
-  if (projectId) {
-    const globalMemories = await safeSelectMemories(userId, 8, null);
-    context.importantMemories = globalMemories.data
-      .map(normalizeMemoryItem)
-      .filter(Boolean)
-      .filter((item: any) => !item.projectId) as ImportantMemory[];
-  } else {
-    context.importantMemories = [];
-  }
+  const userMemories = await safeSelectUserMemories(userId, Math.max(12, Math.floor(limit / 2)));
+  if (userMemories.error) fallbackError = fallbackError ?? userMemories.error;
+  context.importantMemories = userMemories.data
+    .map(normalizeMemoryItem)
+    .filter(Boolean)
+    .filter((item: any) => !item.projectId) as ImportantMemory[];
 
   const sessions = await safeSelectSessions(userId, 8, projectId);
   if (sessions.error) fallbackError = fallbackError ?? sessions.error;
@@ -256,7 +280,7 @@ export async function getMemoryContext(userId: string, limit = 10, query?: strin
 function asksMemoryQuestion(message: string) {
   const lower = stripAccents(message);
   return /\b(qual|quais|onde|em que|o que|lembra|lembrar|paramos|status|resuma|resumo)\b/.test(lower)
-    && /\b(proxima etapa|proximo passo|banco|framework|deploy|arquitetura|decisao|pendencia|onde paramos|etapa|marco|status|projeto)\b/.test(lower);
+    && /\b(proxima etapa|proximo passo|banco|framework|deploy|arquitetura|decisao|pendencia|onde paramos|etapa|marco|status|projeto|cor favorita|cor preferida|preferencia|preferencias|editor|sistema operacional|ambiente)\b/.test(lower);
 }
 
 export function buildMemoryPrompt(context: MemoryContext, userMessage?: string | null) {
@@ -362,6 +386,27 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
     return { kind: 'decision', scope: projectId ? 'project' : 'user', title: 'Decisão registrada', content: `Decisão registrada: ${decision}.`, salience: 5, tags: ['chat', 'auto', 'project', 'decision'] };
   }
 
+  const colorPreference = extractAfterPattern(text, [
+    /(?:minha\s+)?cor\s+(?:favorita|preferida)\s+(?:é|eh|:)?\s*([a-zA-ZÀ-ÿ\s-]{3,40})$/i,
+    /(?:gosto|gosto muito)\s+de\s+(?:cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})$/i,
+    /(?:prefiro)\s+(?:a\s+cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})$/i
+  ]);
+  if (colorPreference) {
+    return {
+      kind: 'preference',
+      scope: 'user',
+      title: 'Cor favorita do usuário',
+      content: `A cor favorita do usuário é ${colorPreference}.`,
+      salience: 4,
+      tags: ['chat', 'auto', 'preference', 'personal', 'color', 'cor-favorita']
+    };
+  }
+
+  const editorPreference = extractAfterPattern(text, [/(?:meu\s+)?editor(?:\s+principal)?\s+(?:é|eh|:)?\s*(.+)$/i]);
+  if (editorPreference) {
+    return { kind: 'preference', scope: 'user', title: 'Editor principal do usuário', content: `O editor principal do usuário é ${editorPreference}.`, salience: 4, tags: ['chat', 'auto', 'preference', 'dev-environment', 'editor'] };
+  }
+
   const preference = extractAfterPattern(text, [/(?:prefiro|gosto que|quero que voce|quero que você|a partir de agora)\s+(.+)$/i]);
   if (preference) {
     return { kind: 'preference', scope: 'user', title: 'Preferência do usuário', content: `Preferência registrada: ${preference}.`, salience: 4, tags: ['chat', 'auto', 'preference'] };
@@ -417,7 +462,8 @@ export async function saveChatTurn(input: SaveChatTurnInput) {
   const candidate = extractMemoryCandidate(input.userMessage, input.projectId);
   let memoryRecorded = false;
   if (candidate) {
-    await insertMemory(core, { user_id: input.userId, session_id: sessionId, project_id: input.projectId ?? null, scope: candidate.scope, kind: candidate.kind, title: candidate.title, content: candidate.content, salience: candidate.salience, tags: candidate.tags, metadata: { source: 'chat-auto', projectId: input.projectId ?? null } });
+    const memoryProjectId = candidate.scope === 'project' ? input.projectId ?? null : null;
+    await insertMemory(core, { user_id: input.userId, session_id: sessionId, project_id: memoryProjectId, scope: candidate.scope, kind: candidate.kind, title: candidate.title, content: candidate.content, salience: candidate.salience, tags: candidate.tags, metadata: { source: 'chat-auto', projectId: memoryProjectId } });
     memoryRecorded = true;
   }
 
