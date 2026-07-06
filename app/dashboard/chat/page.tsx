@@ -152,6 +152,16 @@ function extractLocalMemories(message: string): LocalMemory[] {
     const editor = text.match(/(?:meu\s+editor|editor\s+principal)\s*(?:é|eh|:)\s*(.+)$/i);
     if (editor?.[1]) add('Editor principal', `O editor principal utilizado por Paulo é ${cleanFact(editor[1])}.`, ['development', 'tool', 'confirmed']);
 
+    const corFavorita =
+      text.match(/(?:minha\s+)?cor\s+(?:favorita|preferida)\s*(?:é|eh|:)\s*(.+)$/i) ??
+      text.match(/(?:eu\s+)?(?:gosto|prefiro)\s+(?:da\s+cor\s+)?(?:de\s+)?([a-záàâãéêíóôõúç\s-]{3,40})$/i);
+    if (corFavorita?.[1]) {
+      const cor = cleanFact(corFavorita[1]);
+      if (!/^(responder|saber|lembrar|perguntar|dizer|confirmar)$/i.test(cor)) {
+        add('Cor favorita de Paulo', `A cor favorita/preferida de Paulo é ${cor}.`, ['preference', 'personal', 'visual', 'confirmed']);
+      }
+    }
+
     const sistema = text.match(/trabalho\s+no\s+(.+?),?\s+mas\s+prefiro\s+(.+)$/i);
     if (sistema?.[1] && sistema?.[2]) add('Ambiente de desenvolvimento', `Paulo trabalha no ${cleanFact(sistema[1])}, mas prefere ${cleanFact(sistema[2])}.`, ['development', 'os', 'confirmed']);
   };
@@ -170,7 +180,7 @@ function localMemoryPriorityScore(memory: LocalMemory) {
   if (/objetivo principal|nome do projeto|aura\/argus|aura argus/.test(haystack)) score += 75;
   if (/project|projeto|confirmed|confirmado/.test(haystack)) score += 40;
   if (/editor|vs code|windows|linux|ambiente de desenvolvimento/.test(haystack)) score += 25;
-  if (/cor favorita/.test(haystack)) score -= 10;
+  if (/cor favorita|cor preferida|preference|preferencia|visual/.test(haystack)) score += 20;
   const createdAt = Date.parse(memory.createdAt || '');
   if (createdAt > 0) score += Math.max(0, 24 - Math.min(24, (Date.now() - createdAt) / 36e5));
   return score;
@@ -254,7 +264,7 @@ function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null, lo
     ? `Projeto ativo no workspace: ${project.name}${project.description ? ` — ${project.description}` : ''}. Responda priorizando este projeto quando a pergunta depender de contexto.`
     : 'Projeto ativo no workspace: AURA/ARGUS AI Operating System.';
   const memoryContext = localMemories.length
-    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT — FATOS CONFIRMADOS PELO USUÁRIO:\n${sortLocalMemoriesByPriority(localMemories).map((item, index) => `${index + 1}. [P${Math.round(localMemoryPriorityScore(item))}] ${item.title}: ${item.content}`).join('\n')}\nRegras críticas de uso da memória: use estes fatos como fonte prioritária, respeitando a ordem de prioridade exibida. Quando o usuário perguntar sobre banco, deploy, framework, IA estratégica, IA operacional, próxima etapa, objetivo ou arquitetura deste projeto, responda com base nestes fatos. Não diga que não possui registro quando o fato estiver listado acima. Diferencie fatos confirmados de inferências.`
+    ? `MEMÓRIA LOCAL RECUPERADA DO CHAT — FATOS CONFIRMADOS PELO USUÁRIO:\n${sortLocalMemoriesByPriority(localMemories).map((item, index) => `${index + 1}. [P${Math.round(localMemoryPriorityScore(item))}] ${item.title}: ${item.content}`).join('\n')}\nRegras críticas de uso da memória: use estes fatos como fonte prioritária, respeitando a ordem de prioridade exibida. Quando o usuário perguntar sobre banco, deploy, framework, IA estratégica, IA operacional, próxima etapa, objetivo, arquitetura, editor, ambiente de desenvolvimento ou preferências pessoais como cor favorita/preferida, responda com base nestes fatos. Não diga que não possui registro quando o fato estiver listado acima. Diferencie fatos confirmados de inferências.`
     : 'MEMÓRIA LOCAL RECUPERADA DO CHAT: ainda sem registros nesta sessão/navegador.';
   return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}. Se o usuário apenas informar um fato, confirme objetivamente e evite transformar a resposta em uma consultoria longa.`;
 }
