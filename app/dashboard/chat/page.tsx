@@ -215,6 +215,50 @@ function saveLocalMemories(memories: LocalMemory[]) {
   window.localStorage.setItem(LOCAL_MEMORY_KEY, JSON.stringify(sortLocalMemoriesByPriority(memories).slice(0, 24)));
 }
 
+function findLocalMemoryByTags(memories: LocalMemory[], required: string[]) {
+  return sortLocalMemoriesByPriority(memories).find((memory) => {
+    const tags = new Set(memory.tags.map((tag) => stripAccents(tag)));
+    const text = stripAccents(`${memory.title} ${memory.content}`);
+    return required.every((tag) => tags.has(tag) || text.includes(tag));
+  }) ?? null;
+}
+
+function extractColorFromMemory(memory: LocalMemory | null) {
+  if (!memory) return null;
+  const content = memory.content.replace(/\s+/g, ' ').trim();
+  const match = content.match(/(?:é|eh)\s+([A-Za-zÀ-ÿ\s-]+)\.?$/i);
+  const color = cleanFact(match?.[1] ?? content.replace(/^.*cor favorita\/preferida de Paulo\s+(?:é|eh)\s+/i, ''));
+  return color || null;
+}
+
+function resolveLocalMemoryAnswer(question: string, memories: LocalMemory[], personaLabel: string) {
+  const normalizedQuestion = stripAccents(question);
+
+  if (/\b(cor favorita|cor preferida|minha cor|qual.*cor)\b/.test(normalizedQuestion)) {
+    const memory = findLocalMemoryByTags(memories, ['preference', 'personal'])
+      ?? sortLocalMemoriesByPriority(memories).find((item) => /cor favorita|cor preferida|cor favorita\/preferida/.test(stripAccents(`${item.title} ${item.content}`)))
+      ?? null;
+    const color = extractColorFromMemory(memory);
+    if (color) return `Sua cor favorita/preferida é ${color}.`;
+  }
+
+  if (/\b(qual|quais|o que|resuma|resumo)\b/.test(normalizedQuestion) && /\b(banco|database)\b/.test(normalizedQuestion)) {
+    const memory = findLocalMemoryByTags(memories, ['database'])
+      ?? sortLocalMemoriesByPriority(memories).find((item) => /banco principal|supabase/.test(stripAccents(`${item.title} ${item.content}`)))
+      ?? null;
+    if (memory) return memory.content.replace(/^O /, 'O ');
+  }
+
+  if (/\b(proxima etapa|proximo passo|qual.*etapa)\b/.test(normalizedQuestion)) {
+    const memory = findLocalMemoryByTags(memories, ['next-step'])
+      ?? sortLocalMemoriesByPriority(memories).find((item) => /proxima etapa|proximo passo|action engine/.test(stripAccents(`${item.title} ${item.content}`)))
+      ?? null;
+    if (memory) return memory.content;
+  }
+
+  return null;
+}
+
 
 
 type LocalMemoryStats = {
@@ -396,6 +440,23 @@ export default function ChatPage() {
     if (capturedMemories.length) {
       saveLocalMemories(promptMemories);
       setLocalMemories(promptMemories);
+    }
+
+    const localAnswer = resolveLocalMemoryAnswer(text, promptMemories, selectedMeta.label);
+    if (localAnswer) {
+      updateLocalMemoryStats(promptMemories, 1);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: localAnswer,
+          persona: selectedPersona,
+          meta: `${selectedMeta.label} · memória local · AURA/ARGUS AI Operating System`,
+          time: now()
+        }
+      ]);
+      setIsSending(false);
+      return;
     }
 
     try {

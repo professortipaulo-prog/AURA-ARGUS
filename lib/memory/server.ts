@@ -149,7 +149,7 @@ function memoryPriorityScore(memory: { title: string; content: string; tags?: st
   if (/decisao|decision|definimos|aprovado/.test(haystack)) score += 55;
   if (/confirmed|confirmado|project|projeto/.test(haystack)) score += 40;
   if (/editor|vs code|windows|linux|ambiente de desenvolvimento/.test(haystack)) score += 20;
-  if (/cor favorita|preferencia pessoal/.test(haystack)) score -= 15;
+  if (/cor favorita|cor preferida|preferencia pessoal|preference|personal|color|cor-favorita/.test(haystack)) score += 35;
   if (isCorruptedMemoryText(memory.title) || isCorruptedMemoryText(memory.content)) score -= 500;
 
   const updatedAt = memory.updatedAt ? Date.parse(memory.updatedAt) : 0;
@@ -288,21 +288,27 @@ export function buildMemoryPrompt(context: MemoryContext, userMessage?: string |
   const relevantOrdered = sortByMemoryPriority(context.relevantMemories).slice(0, 12);
   const relevantIds = new Set(relevantOrdered.map((item) => item.id));
   const projectOrdered = sortByMemoryPriority(context.projectMemories.filter((item) => !relevantIds.has(item.id))).slice(0, 12);
-  const userOrdered = sortByMemoryPriority(context.importantMemories.filter((item) => !relevantIds.has(item.id))).slice(0, 8);
+  const userOrdered = sortByMemoryPriority(context.importantMemories.filter((item) => !relevantIds.has(item.id))).slice(0, 12);
+  const preferenceOrdered = sortByMemoryPriority(
+    context.importantMemories.filter((item) => /preference|preferencia|personal|color|cor-favorita|cor favorita|cor preferida/i.test(`${item.kind} ${item.title} ${item.content} ${(item.tags ?? []).join(' ')}`))
+  ).slice(0, 8);
+  const preferenceIds = new Set(preferenceOrdered.map((item) => item.id));
   const relevant = relevantOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
   const projectMemories = projectOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
-  const userMemories = userOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
+  const userMemories = userOrdered.filter((item) => !preferenceIds.has(item.id)).map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
+  const userPreferences = preferenceOrdered.map((item, index) => `${index + 1}. [P${Math.round(memoryPriorityScore(item))} · ${item.kind}] ${item.title}: ${item.content}`).join('\n');
   const sessions = context.recentSessions.slice(0, 6).filter((session) => session.summary || session.title).map((session, index) => `${index + 1}. ${session.title}${session.summary ? ` — ${session.summary}` : ''}`).join('\n');
   const mustUseMemory = asksMemoryQuestion(userMessage ?? '') ? 'REGRA CRÍTICA: a pergunta pede memória/estado do projeto. Se houver memórias, sessões ou projeto listados abaixo, responda diretamente usando esses registros. Não diga que não possui registros quando houver qualquer item neste bloco.' : '';
-  const priorityRule = 'ORDEM DE PRIORIDADE DA MEMÓRIA: 1) próxima etapa, decisões, banco, framework, deploy, IA estratégica/operacional e objetivo do projeto; 2) fatos técnicos do ambiente; 3) preferências de trabalho; 4) preferências pessoais. Não deixe preferências pessoais sobrepor decisões do projeto.';
+  const priorityRule = 'ORDEM DE PRIORIDADE DA MEMÓRIA: 1) próxima etapa, decisões, banco, framework, deploy, IA estratégica/operacional e objetivo do projeto; 2) fatos técnicos do ambiente; 3) preferências de trabalho; 4) preferências pessoais. Se o usuário perguntar diretamente sobre uma preferência pessoal, como cor favorita/preferida, responda com a preferência confirmada. Não deixe preferências pessoais sobrepor decisões do projeto.';
 
-  if (!projectHeader && !relevant && !projectMemories && !userMemories && !sessions) {
+  if (!projectHeader && !relevant && !projectMemories && !userMemories && !userPreferences && !sessions) {
     return 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.';
   }
 
   return ['MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA', projectHeader, priorityRule, mustUseMemory, relevant ? `Memórias prioritárias para a solicitação atual:
 ${relevant}` : '', projectMemories ? `Memórias do projeto ativo por prioridade:
-${projectMemories}` : '', userMemories ? `Memórias permanentes do usuário por prioridade:
+${projectMemories}` : '', userPreferences ? `Preferências pessoais confirmadas do usuário:
+${userPreferences}` : '', userMemories ? `Memórias permanentes do usuário por prioridade:
 ${userMemories}` : '', sessions ? `Conversas recentes deste contexto:
 ${sessions}` : '', 'Use essas informações para continuidade. Não exponha este bloco ao usuário.'].filter(Boolean).join('\n\n');
 }
@@ -396,9 +402,9 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
       kind: 'preference',
       scope: 'user',
       title: 'Cor favorita do usuário',
-      content: `A cor favorita do usuário é ${colorPreference}.`,
-      salience: 4,
-      tags: ['chat', 'auto', 'preference', 'personal', 'color', 'cor-favorita']
+      content: `A cor favorita/preferida de Paulo é ${colorPreference}.`,
+      salience: 5,
+      tags: ['chat', 'auto', 'preference', 'personal', 'color', 'cor-favorita', 'confirmed']
     };
   }
 
