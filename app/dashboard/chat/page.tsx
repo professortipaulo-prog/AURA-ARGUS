@@ -154,7 +154,7 @@ function extractLocalMemories(message: string): LocalMemory[] {
 
     const corFavorita =
       text.match(/(?:minha\s+)?cor\s+(?:favorita|preferida)\s*(?:é|eh|:)\s*(.+)$/i) ??
-      text.match(/(?:eu\s+)?(?:gosto|prefiro)\s+(?:da\s+cor\s+)?(?:de\s+)?([a-záàâãéêíóôõúç\s-]{3,40})$/i);
+      text.match(/(?:eu\s+)?(?:gosto|prefiro)\s+(?:da\s+cor\s+)?(?:de\s+)?([a-záàâãéêíóôõúç\s-]{3,40}?)[.!?]*$/i);
     if (corFavorita?.[1]) {
       const cor = cleanFact(corFavorita[1]);
       if (!/^(responder|saber|lembrar|perguntar|dizer|confirmar)$/i.test(cor)) {

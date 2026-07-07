@@ -393,9 +393,9 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
   }
 
   const colorPreference = extractAfterPattern(text, [
-    /(?:minha\s+)?cor\s+(?:favorita|preferida)\s+(?:é|eh|:)?\s*([a-zA-ZÀ-ÿ\s-]{3,40})$/i,
-    /(?:gosto|gosto muito)\s+de\s+(?:cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})$/i,
-    /(?:prefiro)\s+(?:a\s+cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})$/i
+    /(?:minha\s+)?cor\s+(?:favorita|preferida)\s+(?:é|eh|:)?\s*([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i,
+    /(?:gosto|gosto muito)\s+de\s+(?:cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i,
+    /(?:prefiro)\s+(?:a\s+cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i
   ]);
   if (colorPreference) {
     return {
