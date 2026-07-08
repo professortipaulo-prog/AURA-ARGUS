@@ -342,12 +342,18 @@ export default function ChatPage() {
   ]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
 
   const active = PERSONAS[persona];
   const activeProject = useMemo(() => projects.find((project) => project.id === projectId) ?? projects[0] ?? DEFAULT_PROJECT, [projectId, projects]);
 
   useEffect(() => {
     setLocalMemories(loadLocalMemories());
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    setSpeechSupported(Boolean(SpeechRecognitionCtor) && typeof window.speechSynthesis !== 'undefined');
   }, []);
 
   useEffect(() => {
@@ -393,6 +399,50 @@ export default function ChatPage() {
   function switchPersona(next: Persona) {
     setPersona(next);
     setInput('');
+  }
+
+  function toggleListening() {
+    if (!speechSupported) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript ?? '';
+      if (transcript) setInput((current) => (current ? `${current} ${transcript}` : transcript));
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.start();
+  }
+
+  function speakMessage(text: string, index: number) {
+    if (typeof window.speechSynthesis === 'undefined') return;
+
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+    setSpeakingIndex(index);
+    window.speechSynthesis.speak(utterance);
   }
 
   function handleProjectChange(nextProjectId: string) {
@@ -553,6 +603,16 @@ export default function ChatPage() {
                   <footer>
                     {msg.meta ? <small>{msg.meta}</small> : <small>{p.meta}</small>}
                     {msg.time ? <time>{msg.time}</time> : null}
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        className="chat-speak-button"
+                        aria-label={speakingIndex === index ? 'Parar leitura' : 'Ouvir resposta'}
+                        onClick={() => speakMessage(msg.content, index)}
+                      >
+                        {speakingIndex === index ? '⏹' : '🔊'}
+                      </button>
+                    )}
                   </footer>
                 </article>
               );
@@ -604,9 +664,21 @@ export default function ChatPage() {
                 }
               }}
             />
-            <button type="submit" disabled={isSending || !input.trim()} aria-label="Enviar mensagem">
-              ✦
-            </button>
+            <div className="chat-composer-actions">
+              {speechSupported && (
+                <button
+                  type="button"
+                  className={isListening ? 'chat-mic-button is-listening' : 'chat-mic-button'}
+                  onClick={toggleListening}
+                  aria-label={isListening ? 'Parar de ouvir' : 'Falar mensagem'}
+                >
+                  {isListening ? '⏺' : '🎙'}
+                </button>
+              )}
+              <button type="submit" disabled={isSending || !input.trim()} aria-label="Enviar mensagem">
+                ✦
+              </button>
+            </div>
             <span>Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}</span>
           </form>
         </div>
