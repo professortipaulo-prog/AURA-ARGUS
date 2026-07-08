@@ -32,6 +32,7 @@ export type ExecuteActionRequest = {
   phone?: string;
   message?: string;
   borderVariant?: 1 | 2;
+  useAI?: boolean;
 };
 
 export type ActionArtifact = {

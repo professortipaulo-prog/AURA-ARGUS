@@ -77,6 +77,7 @@ export default function ActionsPage() {
   const [format, setFormat] = useState<DocumentFormat>('md');
   const [documentPersona, setDocumentPersona] = useState<'aura' | 'argus'>('aura');
   const [borderVariant, setBorderVariant] = useState<1 | 2>(1);
+  const [useAI, setUseAI] = useState(true);
   const [result, setResult] = useState<ExecuteActionResult | null>(null);
   const [history, setHistory] = useState<ExecuteActionResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,7 +112,7 @@ export default function ActionsPage() {
       const response = await fetch('/api/actions/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'document.create', title, content, format, persona: documentPersona, borderVariant })
+        body: JSON.stringify({ action: 'document.create', title, content, format, persona: documentPersona, borderVariant, useAI })
       });
       const data = (await response.json()) as ExecuteActionResult;
       setResult(data);
@@ -226,8 +227,13 @@ export default function ActionsPage() {
           </div>
 
           <label className="aios-form-control">
-            <span>Conteúdo</span>
-            <textarea className="aios-textarea aios-action-textarea" value={content} onChange={(event) => setContent(event.target.value)} />
+            <span>Conteúdo (o que você descrever aqui vira o briefing para a IA desenvolver)</span>
+            <textarea className="aios-textarea aios-action-textarea" value={content} onChange={(event) => setContent(event.target.value)} placeholder='Ex: "Fale sobre minha carreira" ou "Faça um resumo do projeto AURA/ARGUS"' />
+          </label>
+
+          <label className="aios-checkbox-control">
+            <input type="checkbox" checked={useAI} onChange={(event) => setUseAI(event.target.checked)} />
+            <span>Desenvolver o conteúdo com IA (usando perfil e memória do usuário). Se desligado, o texto acima é usado literalmente.</span>
           </label>
 
           <div className="aios-action-bar">

@@ -3,6 +3,10 @@ import { getSession } from '@/lib/auth/session';
 import { ACTION_CAPABILITIES } from './capabilities';
 import { createDocumentArtifact } from './document-engine';
 import type { ExecuteActionRequest, ExecuteActionResult } from './types';
+import { sendChat } from '@/lib/ai/ai-router';
+import { getCurrentUserIdentity } from '@/lib/identity/server';
+import { buildMemoryPrompt, getMemoryContext } from '@/lib/memory/server';
+import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
 
 function isSchemaError(message?: string): boolean {
   if (!message) return false;
@@ -106,9 +110,39 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
     return { ok: false, action: request.action, status: 'failed', message: `Acao ainda nao suportada: ${request.action}` };
   }
 
+  const requestedContent = request.content?.trim() ?? '';
+  const shouldUseAI = request.useAI !== false && requestedContent.length > 0;
+  let finalContent = requestedContent;
+  let aiElaborationError: string | null = null;
+  let aiElaborationUsed = false;
+
+  if (shouldUseAI) {
+    try {
+      const persona = request.persona === 'argus' ? 'argus' : 'aura';
+      const { user, identity } = await getCurrentUserIdentity();
+      const memory = user?.id
+        ? await getMemoryContext(user.id, 12, requestedContent, request.projectId ?? null)
+        : { context: { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] } };
+      const memoryPrompt = buildMemoryPrompt(memory.context, requestedContent);
+      const systemPrompt = buildPersonaSystemPrompt({ persona, identity, memoryPrompt });
+
+      const brief = `Elabore o CONTEUDO COMPLETO de um documento no formato "${request.format ?? 'md'}", com o titulo "${request.title ?? 'Documento AURA ARGUS'}".\n\nSolicitacao do usuario: "${requestedContent}"\n\nDesenvolva um texto completo, bem estruturado, em portugues do Brasil, usando o que voce sabe sobre o usuario (perfil e memoria) quando for relevante. Responda APENAS com o conteudo final do documento — sem saudacoes, sem comentarios sobre a tarefa, sem introducoes tipo "aqui esta o documento".`;
+
+      const result = await sendChat({ message: brief, persona, systemPrompt });
+      if (result.response?.trim()) {
+        finalContent = result.response.trim();
+        aiElaborationUsed = true;
+      }
+    } catch (error) {
+      aiElaborationError = error instanceof Error ? error.message : 'Nao foi possivel usar a IA para elaborar o conteudo.';
+      // Falha na IA nao deve impedir a geracao do documento — segue com o
+      // texto literal que o usuario digitou.
+    }
+  }
+
   const artifact = await createDocumentArtifact({
     title: request.title ?? 'Documento AURA ARGUS',
-    content: request.content ?? '',
+    content: finalContent,
     format: request.format ?? 'md',
     persona: request.persona,
     borderVariant: request.borderVariant
@@ -129,15 +163,19 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
     }
   });
 
+  const warnings: string[] = [];
+  if (request.format === 'doc') warnings.push('Formato DOC gerado como HTML compativel com Word. DOCX nativo entra na etapa avancada do Document Engine.');
+  if (aiElaborationError) warnings.push(`Nao foi possivel usar a IA para elaborar o conteudo (${aiElaborationError}). Foi usado o texto literal informado.`);
+
   return {
     ok: true,
     action: request.action,
     status: 'completed',
     runId: runId ?? undefined,
     artifact,
-    message: `Documento preparado para download: ${artifact.fileName}`,
-    warnings: request.format === 'doc'
-      ? ['Formato DOC gerado como HTML compativel com Word. DOCX nativo entra na etapa avancada do Document Engine.']
-      : undefined
+    message: aiElaborationUsed
+      ? `Documento elaborado pela IA e preparado para download: ${artifact.fileName}`
+      : `Documento preparado para download: ${artifact.fileName}`,
+    warnings: warnings.length > 0 ? warnings : undefined
   };
 }
