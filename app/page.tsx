@@ -1,3 +1,5 @@
+import { MatrixRain } from '@/components/matrix-rain';
+
 const capabilities = [
   ['Inteligência contextual', 'Perfil, identidade e preferências aplicadas desde o primeiro atendimento.'],
   ['Análise operacional', 'ARGUS observa, valida riscos, prioriza rotas e orienta execução técnica.'],
@@ -27,13 +29,6 @@ const meanings = [
   }
 ];
 
-const rain = Array.from({ length: 34 }, (_, index) => ({
-  left: `${(index * 7) % 100}%`,
-  delay: `${-(index % 9) * 0.9}s`,
-  duration: `${8 + (index % 6)}s`,
-  opacity: 0.08 + (index % 5) * 0.035,
-}));
-
 export default function HomePage() {
   return (
     <main className="psfhome-shell">
@@ -41,21 +36,7 @@ export default function HomePage() {
         <div className="psfhome-grid" />
         <div className="psfhome-glow psfhome-glow-a" />
         <div className="psfhome-glow psfhome-glow-b" />
-        <div className="psfhome-rain">
-          {rain.map((item, index) => (
-            <span
-              key={index}
-              style={{
-                left: item.left,
-                animationDelay: item.delay,
-                animationDuration: item.duration,
-                opacity: item.opacity,
-              }}
-            >
-              010011010101001101001001101001011010010101101001010011010010101101001010010101
-            </span>
-          ))}
-        </div>
+        <MatrixRain />
       </div>
 
       <header className="psfhome-header">
@@ -81,16 +62,16 @@ export default function HomePage() {
 
       <section className="psfhome-hero" id="aura-argus">
         <div className="psfhome-copy">
-          <p className="psfhome-eyebrow"><i /> Núcleo de Inteligência Operacional</p>
+          <p className="psfhome-eyebrow"><i /> Núcleo Operacional de IA</p>
           <h1>
-            Inteligência que vê,<br /> compreende e <span>impulsiona resultados.</span>
+            Duas mentes.<br /> <span>Uma</span> missão.
           </h1>
           <p className="psfhome-lead">
-            AURA e ARGUS são assistentes de IA projetados para atuar como um núcleo estratégico de inteligência operacional, com presença humana, análise profunda e execução precisa.
+            AURA pensa a estratégia. ARGUS executa a operação. Juntas, formam o sistema operacional de inteligência da PSF.
           </p>
 
           <div className="psfhome-cta-row">
-            <a className="psfhome-btn psfhome-btn-primary psfhome-btn-large" href="/login">Acessar sistema</a>
+            <a className="psfhome-btn psfhome-btn-primary psfhome-btn-large" href="/login">Acessar o sistema →</a>
             <span className="psfhome-btn psfhome-btn-glass psfhome-btn-large psfhome-btn-disabled" aria-disabled="true">Criar perfil em breve</span>
           </div>
 
