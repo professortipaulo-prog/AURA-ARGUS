@@ -8,11 +8,13 @@ const items: Array<[string, string, string]> = [
   ['Identidade', '/dashboard/identity', '▦'],
   ['Projetos', '/dashboard/projects', '▣'],
   ['Documentos', '/dashboard/documents', '▤'],
+  ['Ações', '/dashboard/actions', '⚡'],
   ['Memória', '/dashboard/memory', '◌'],
   ['Agentes', '/dashboard/agents', '✦'],
-  ['Configurações', '/dashboard/settings', '⚙'],
-  ['Admin', '/dashboard/admin', '◆']
+  ['Configurações', '/dashboard/settings', '⚙']
 ];
+
+const adminOnlyItem: [string, string, string] = ['Admin', '/dashboard/admin', '◆'];
 
 type SidebarProps = {
   displayName?: string | null;
@@ -20,13 +22,16 @@ type SidebarProps = {
 };
 
 export function Sidebar({ displayName, role }: SidebarProps) {
+  const isPrivileged = role === 'owner' || role === 'admin';
+  const visibleItems = isPrivileged ? [...items, adminOnlyItem] : items;
+
   return (
     <aside className="aios-sidebar">
       <Link href="/dashboard" className="aios-sidebar-brand">
         <LogoWithWordmark subtitle="AI Operating System" />
       </Link>
       <nav className="aios-nav">
-        {items.map(([label, href, icon]) => (
+        {visibleItems.map(([label, href, icon]) => (
           <Link key={href} href={href} className="aios-nav-link">
             <span>{icon}</span>
             {label}
