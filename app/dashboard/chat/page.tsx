@@ -312,17 +312,37 @@ function buildSystemPrompt(persona: Persona, project?: ProjectSummary | null, lo
     : 'MEMÓRIA LOCAL RECUPERADA DO CHAT: ainda sem registros nesta sessão/navegador.';
   return `${PERSONAS[persona].system}\n\n${USER_CONTEXT}\n\n${projectContext}\n\n${memoryContext}\n\nRegra crítica: mantenha sempre a identidade ${PERSONAS[persona].label}. Se o usuário perguntar quem é você, responda como ${PERSONAS[persona].label}. Se o usuário apenas informar um fato, confirme objetivamente e evite transformar a resposta em uma consultoria longa.`;
 }
-function AvatarDockCard({ persona, active, onClick }: { persona: Persona; active: boolean; onClick: () => void }) {
+function AvatarDockCard({
+  persona,
+  active,
+  voiceState,
+  onClick
+}: {
+  persona: Persona;
+  active: boolean;
+  voiceState: 'idle' | 'listening' | 'speaking';
+  onClick: () => void;
+}) {
   const item = PERSONAS[persona];
   return (
-    <button type="button" onClick={onClick} className={`chat-avatar-card ${persona} ${active ? 'is-active' : 'is-muted'}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`chat-avatar-card ${persona} ${active ? 'is-active' : 'is-muted'} voice-${voiceState}`}
+    >
       <span className="chat-avatar-photo">
         <Image src={item.image} alt={`Avatar ${item.label}`} fill sizes="160px" className="object-cover" priority={persona === 'aura'} />
+        {voiceState === 'speaking' && (
+          <span className="chat-avatar-voice-rings" aria-hidden="true">
+            <i /><i /><i />
+          </span>
+        )}
+        {voiceState === 'listening' && <span className="chat-avatar-listening-dot" aria-hidden="true" />}
       </span>
       <span className="chat-avatar-info">
         <strong>{item.label}</strong>
         <small>{item.title}</small>
-        <em>{active ? 'Ativo' : 'Em espera'}</em>
+        <em>{voiceState === 'speaking' ? 'Falando' : voiceState === 'listening' ? 'Ouvindo' : active ? 'Ativo' : 'Em espera'}</em>
       </span>
     </button>
   );
@@ -655,8 +675,30 @@ export default function ChatPage() {
       <section className={`chat-os ${persona}`}>
         <div className="chat-shell-card">
           <div className="chat-avatar-dock" aria-label="Selecionar assistente">
-            <AvatarDockCard persona="aura" active={persona === 'aura'} onClick={() => switchPersona('aura')} />
-            <AvatarDockCard persona="argus" active={persona === 'argus'} onClick={() => switchPersona('argus')} />
+            <AvatarDockCard
+              persona="aura"
+              active={persona === 'aura'}
+              voiceState={
+                speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'aura'
+                  ? 'speaking'
+                  : isListening && persona === 'aura'
+                    ? 'listening'
+                    : 'idle'
+              }
+              onClick={() => switchPersona('aura')}
+            />
+            <AvatarDockCard
+              persona="argus"
+              active={persona === 'argus'}
+              voiceState={
+                speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'argus'
+                  ? 'speaking'
+                  : isListening && persona === 'argus'
+                    ? 'listening'
+                    : 'idle'
+              }
+              onClick={() => switchPersona('argus')}
+            />
           </div>
 
           <div className="chat-stream" ref={scrollRef}>

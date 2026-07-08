@@ -427,6 +427,33 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   z-index: 1;
 }
 .chat-avatar-info { position: relative; z-index: 1; display: grid; gap: 4px; }
+.chat-avatar-card.voice-speaking .chat-avatar-photo { animation: chatAvatarSpeakPulse 0.9s ease-in-out infinite; }
+.chat-avatar-voice-rings { position: absolute; inset: 0; pointer-events: none; }
+.chat-avatar-voice-rings i {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--active-primary) 65%, transparent);
+  animation: chatAvatarVoiceRing 1.6s ease-out infinite;
+  opacity: 0;
+}
+.chat-avatar-voice-rings i:nth-child(2) { animation-delay: .45s; }
+.chat-avatar-voice-rings i:nth-child(3) { animation-delay: .9s; }
+.chat-avatar-listening-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #ff4d4f;
+  border: 2px solid rgba(5,10,24,.9);
+  animation: chatAvatarListeningBlink 1s ease-in-out infinite;
+  z-index: 2;
+}
+@keyframes chatAvatarSpeakPulse { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.06); } }
+@keyframes chatAvatarVoiceRing { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes chatAvatarListeningBlink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
 .chat-avatar-info strong { color: #fff; font-size: 25px; letter-spacing: .08em; }
 .chat-avatar-info small { color: #cbd8eb; font-size: 14px; }
 .chat-avatar-info em { color: var(--active-primary); font-size: 12px; font-style: normal; font-weight: 900; text-transform: uppercase; letter-spacing: .18em; }

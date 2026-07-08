@@ -25,7 +25,15 @@ export const geminiProvider: AIProviderAdapter = {
 
   async send(message: string, model: string, systemPrompt?: string): Promise<string> {
     const client = getClient();
-    const generativeModel = client.getGenerativeModel({ model, ...(systemPrompt ? { systemInstruction: systemPrompt } : {}) });
+    const generativeModel = client.getGenerativeModel({
+      model,
+      ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
+      // Busca na web nativa do Gemini (Google Search grounding), executada
+      // pelo próprio Google — não precisa de chave nova, usa a mesma
+      // GOOGLE_GENERATIVE_AI_API_KEY já configurada. O modelo decide
+      // sozinho quando vale a pena buscar.
+      tools: [{ googleSearch: {} }] as any
+    });
     const result = await generativeModel.generateContent(message);
     const text = result.response.text();
 

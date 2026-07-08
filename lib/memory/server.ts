@@ -284,6 +284,7 @@ function asksMemoryQuestion(message: string) {
 }
 
 export function buildMemoryPrompt(context: MemoryContext, userMessage?: string | null) {
+  const temporalBlock = temporalPromptBlock();
   const projectHeader = context.project ? `Projeto ativo: ${context.project.name}${context.project.description ? ` — ${context.project.description}` : ''}` : '';
   const relevantOrdered = sortByMemoryPriority(context.relevantMemories).slice(0, 12);
   const relevantIds = new Set(relevantOrdered.map((item) => item.id));
@@ -302,10 +303,10 @@ export function buildMemoryPrompt(context: MemoryContext, userMessage?: string |
   const priorityRule = 'ORDEM DE PRIORIDADE DA MEMÓRIA: 1) próxima etapa, decisões, banco, framework, deploy, IA estratégica/operacional e objetivo do projeto; 2) fatos técnicos do ambiente; 3) preferências de trabalho; 4) preferências pessoais. Se o usuário perguntar diretamente sobre uma preferência pessoal, como cor favorita/preferida, responda com a preferência confirmada. Não deixe preferências pessoais sobrepor decisões do projeto.';
 
   if (!projectHeader && !relevant && !projectMemories && !userMemories && !userPreferences && !sessions) {
-    return 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.';
+    return [temporalBlock, 'Memória permanente: ainda sem registros úteis salvos. Se o usuário informar decisão, próxima etapa, preferência, objetivo, pendência ou fato importante, registre após responder.'].join('\n\n');
   }
 
-  return ['MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA', projectHeader, priorityRule, mustUseMemory, relevant ? `Memórias prioritárias para a solicitação atual:
+  return [temporalBlock, 'MEMORY ENGINE — CONTEXTO RECUPERADO DO SISTEMA', projectHeader, priorityRule, mustUseMemory, relevant ? `Memórias prioritárias para a solicitação atual:
 ${relevant}` : '', projectMemories ? `Memórias do projeto ativo por prioridade:
 ${projectMemories}` : '', userPreferences ? `Preferências pessoais confirmadas do usuário:
 ${userPreferences}` : '', userMemories ? `Memórias permanentes do usuário por prioridade:
@@ -357,10 +358,34 @@ function extractAfterPattern(text: string, patterns: RegExp[]) {
   return null;
 }
 
+
+function normalizeCapturedPreference(value: string | null, max = 80) {
+  if (!value) return null;
+  const cleaned = compactText(
+    value
+      .replace(/^[\s:=-]+/, '')
+      .replace(/[.;!?]+$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim(),
+    max
+  );
+  if (!cleaned || isCorruptedMemoryText(cleaned)) return null;
+  return cleaned;
+}
+
+function extractFirst(text: string, patterns: RegExp[], max = 120) {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const fact = normalizeCapturedPreference(match?.[1] ?? null, max);
+    if (fact) return fact;
+  }
+  return null;
+}
+
 function extractMemoryCandidate(userMessage: string, projectId?: string | null): MemoryCandidate | null {
   const text = userMessage.trim();
   const lower = stripAccents(text);
-  if (text.length < 6) return null;
+  if (text.length < 4) return null;
   if (isQuestionLike(text)) return null;
 
   const nextStep = extractAfterPattern(text, [
@@ -369,34 +394,53 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
     /(?:neste projeto|nesse projeto).*?(?:pr[oó]xima etapa|pr[oó]ximo passo).*?(?:é|eh|ser[aá]|:)?\s*(.+)$/i
   ]);
   if (nextStep) {
-    return { kind: 'task', scope: projectId ? 'project' : 'user', title: 'Próxima etapa do projeto', content: `A próxima etapa deste projeto é ${nextStep}.`, salience: 5, tags: ['chat', 'auto', 'project', 'next-step'] };
+    return { kind: 'task', scope: projectId ? 'project' : 'user', title: 'Próxima etapa do projeto', content: `A próxima etapa deste projeto é ${nextStep}.`, salience: 5, tags: ['chat', 'auto', 'project', 'next-step', 'confirmed'] };
   }
 
   const banco = extractAfterPattern(text, [/(?:meu|minha|o)\s+banco(?:\s+principal|\s+de\s+dados)?\s+(?:é|eh|ser[aá]|:)?\s*(.+)$/i, /(?:banco\s+principal|banco\s+de\s+dados)\s+(?:é|eh|ser[aá]|:)?\s*(.+)$/i]);
   if (banco) {
-    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Banco principal do projeto', content: `O banco principal utilizado neste projeto é ${banco}.`, salience: 5, tags: ['chat', 'auto', 'project', 'database', 'supabase'] };
+    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Banco principal do projeto', content: `O banco principal utilizado neste projeto é ${banco}.`, salience: 5, tags: ['chat', 'auto', 'project', 'database', 'supabase', 'confirmed'] };
   }
 
-  const deploy = extractAfterPattern(text, [/(?:utilizarei|usarei|vamos usar|ser[aá] usado)\s+(.+?)\s+(?:para deploy|como deploy|no deploy)/i]);
+  const deploy = extractFirst(text, [
+    /(?:meu\s+)?deploy\s+(?:é|eh|ser[aá]|será|sera|:)?\s*(?:na|no|em|pela|pelo)?\s*(.+)$/i,
+    /(?:utilizarei|usarei|vamos usar|ser[aá] usado)\s+(.+?)\s+(?:para deploy|como deploy|no deploy)/i,
+    /(?:deploy|hospedagem)\s+(?:na|no|em|ser[aá]|:)?\s*(Vercel|Render|Netlify|AWS|Azure|Google Cloud|GCP)/i
+  ], 80);
   if (deploy) {
-    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Deploy do projeto', content: `O deploy do projeto utilizará ${deploy}.`, salience: 4, tags: ['chat', 'auto', 'project', 'deploy'] };
+    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Deploy do projeto', content: `O deploy do projeto utilizará ${deploy}.`, salience: 5, tags: ['chat', 'auto', 'project', 'deploy', 'confirmed'] };
   }
 
-  const framework = extractAfterPattern(text, [/(?:framework|stack).*?(?:é|eh|ser[aá]|como)?\s*(Next\.js\s*14|NextJS\s*14|Next\s*14)/i, /(Next\.js\s*14|NextJS\s*14|Next\s*14)\s+como\s+framework/i]);
+  const framework = extractFirst(text, [
+    /(?:meu\s+)?framework\s+(?:é|eh|ser[aá]|:)?\s*(.+)$/i,
+    /(?:framework|stack).*?(?:é|eh|ser[aá]|como)?\s*(Next\.js\s*14|NextJS\s*14|Next\s*14|React|Vue|Angular|Svelte)/i,
+    /(Next\.js\s*14|NextJS\s*14|Next\s*14|React|Vue|Angular|Svelte)\s+como\s+framework/i
+  ], 80);
   if (framework) {
-    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Framework do projeto', content: `O framework do projeto é ${framework}.`, salience: 4, tags: ['chat', 'auto', 'project', 'framework', 'nextjs'] };
+    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'Framework do projeto', content: `O framework do projeto é ${framework}.`, salience: 5, tags: ['chat', 'auto', 'project', 'framework', 'nextjs', 'confirmed'] };
   }
 
-  const decision = extractAfterPattern(text, [/(?:decis[aã]o|definimos|ficou definido|foi definido|aprovamos|foi aprovado)\s*(?:foi|é|eh|:)?\s*(.+)$/i, /(?:neste projeto|nesse projeto).*?(?:decidimos|definimos)\s*(?:que)?\s*(.+)$/i]);
-  if (decision) {
-    return { kind: 'decision', scope: projectId ? 'project' : 'user', title: 'Decisão registrada', content: `Decisão registrada: ${decision}.`, salience: 5, tags: ['chat', 'auto', 'project', 'decision'] };
+  const strategicAi = extractFirst(text, [
+    /(?:minha\s+)?IA\s+estrat[eé]gica\s+(?:utiliza|usa|é|eh|:)?\s*(.+)$/i,
+    /(?:AURA).*?(?:utiliza|usa|é|eh|com)\s*(Claude|Anthropic|GPT|Gemini)/i
+  ], 80);
+  if (strategicAi) {
+    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'IA estratégica do projeto', content: `A IA estratégica do projeto utiliza ${strategicAi}.`, salience: 5, tags: ['chat', 'auto', 'project', 'ai-router', 'strategic-ai', 'confirmed'] };
   }
 
-  const colorPreference = extractAfterPattern(text, [
-    /(?:minha\s+)?cor\s+(?:favorita|preferida)\s+(?:é|eh|:)?\s*([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i,
-    /(?:gosto|gosto muito)\s+de\s+(?:cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i,
-    /(?:prefiro)\s+(?:a\s+cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40}?)[.!?]*$/i
-  ]);
+  const operationalAi = extractFirst(text, [
+    /(?:minha\s+)?IA\s+operacional\s+(?:utiliza|usa|é|eh|:)?\s*(.+)$/i,
+    /(?:ARGUS).*?(?:utiliza|usa|é|eh|com)\s*(Gemini|Claude|Anthropic|GPT)/i
+  ], 80);
+  if (operationalAi) {
+    return { kind: 'project', scope: projectId ? 'project' : 'user', title: 'IA operacional do projeto', content: `A IA operacional do projeto utiliza ${operationalAi}.`, salience: 5, tags: ['chat', 'auto', 'project', 'ai-router', 'operational-ai', 'confirmed'] };
+  }
+
+  const colorPreference = extractFirst(text, [
+    /(?:minha\s+)?cor\s+(?:favorita|preferida)\s+(?:é|eh|:)?\s*([a-zA-ZÀ-ÿ\s-]{3,40})[.!?]*$/i,
+    /(?:gosto|gosto muito|eu gosto)\s+de\s+(?:cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})[.!?]*$/i,
+    /(?:prefiro)\s+(?:a\s+cor\s+)?([a-zA-ZÀ-ÿ\s-]{3,40})[.!?]*$/i
+  ], 50);
   if (colorPreference) {
     return {
       kind: 'preference',
@@ -408,14 +452,52 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
     };
   }
 
-  const editorPreference = extractAfterPattern(text, [/(?:meu\s+)?editor(?:\s+principal)?\s+(?:é|eh|:)?\s*(.+)$/i]);
+  const editorPreference = extractFirst(text, [
+    /(?:meu\s+)?editor(?:\s+principal)?\s+(?:é|eh|:)?\s*(.+)$/i,
+    /(?:uso|utilizo|trabalho\s+com)\s+(VS\s*Code|Visual Studio Code|Cursor|WebStorm|Sublime|Vim|Neovim)\s*(?:como\s+editor)?/i,
+    /(?:minha\s+)?IDE\s+(?:é|eh|:)?\s*(.+)$/i
+  ], 80);
   if (editorPreference) {
-    return { kind: 'preference', scope: 'user', title: 'Editor principal do usuário', content: `O editor principal do usuário é ${editorPreference}.`, salience: 4, tags: ['chat', 'auto', 'preference', 'dev-environment', 'editor'] };
+    return { kind: 'preference', scope: 'user', title: 'Editor principal do usuário', content: `O editor principal do usuário é ${editorPreference}.`, salience: 4, tags: ['chat', 'auto', 'preference', 'dev-environment', 'editor', 'confirmed'] };
+  }
+
+  const osPreference = extractFirst(text, [
+    /(?:trabalho\s+no|trabalho\s+em|uso|utilizo)\s+(Windows|Linux|Ubuntu|macOS|MacOS|Mac)\s*(?:,?\s*mas\s+prefiro\s+(Windows|Linux|Ubuntu|macOS|MacOS|Mac))?[.!?]*$/i,
+    /(?:meu\s+)?sistema\s+operacional\s+(?:é|eh|:)?\s*(.+)$/i,
+    /(?:prefiro)\s+(Linux|Windows|Ubuntu|macOS|MacOS|Mac)\s*(?:como\s+sistema)?[.!?]*$/i
+  ], 100);
+  if (osPreference) {
+    const preferredMatch = text.match(/mas\s+prefiro\s+(Windows|Linux|Ubuntu|macOS|MacOS|Mac)/i);
+    const content = preferredMatch
+      ? `O usuário trabalha com ${osPreference} e prefere ${normalizeCapturedPreference(preferredMatch[1] ?? null, 40)}.`
+      : `O sistema operacional/ambiente preferido ou utilizado pelo usuário é ${osPreference}.`;
+    return { kind: 'preference', scope: 'user', title: 'Sistema operacional do usuário', content, salience: 4, tags: ['chat', 'auto', 'preference', 'dev-environment', 'os', 'windows', 'linux', 'confirmed'] };
+  }
+
+  const browserPreference = extractFirst(text, [
+    /(?:meu\s+)?navegador(?:\s+principal)?\s+(?:é|eh|:)?\s*(.+)$/i,
+    /(?:uso|utilizo|prefiro)\s+(Chrome|Edge|Firefox|Safari|Brave|Opera)\s*(?:como\s+navegador)?/i
+  ], 80);
+  if (browserPreference) {
+    return { kind: 'preference', scope: 'user', title: 'Navegador principal do usuário', content: `O navegador principal/preferido do usuário é ${browserPreference}.`, salience: 3, tags: ['chat', 'auto', 'preference', 'browser', 'confirmed'] };
+  }
+
+  const toolPreference = extractFirst(text, [
+    /(?:uso|utilizo|trabalho\s+com)\s+(Cursor|GitHub|Git|Docker|Supabase|Vercel|Claude|Gemini|NotebookLM|Google Drive|OneDrive|Gmail|Outlook|Teams|WhatsApp)(?:\s+no\s+projeto)?[.!?]*$/i,
+    /(?:minha\s+)?ferramenta\s+(?:principal\s+)?(?:é|eh|:)?\s*(.+)$/i
+  ], 80);
+  if (toolPreference) {
+    return { kind: 'preference', scope: 'user', title: 'Ferramenta utilizada pelo usuário', content: `O usuário utiliza ${toolPreference} em seu ambiente de trabalho/projeto.`, salience: 3, tags: ['chat', 'auto', 'preference', 'tool', 'confirmed'] };
+  }
+
+  const decision = extractAfterPattern(text, [/(?:decis[aã]o|definimos|ficou definido|foi definido|aprovamos|foi aprovado)\s*(?:foi|é|eh|:)?\s*(.+)$/i, /(?:neste projeto|nesse projeto).*?(?:decidimos|definimos)\s*(?:que)?\s*(.+)$/i]);
+  if (decision) {
+    return { kind: 'decision', scope: projectId ? 'project' : 'user', title: 'Decisão registrada', content: `Decisão registrada: ${decision}.`, salience: 5, tags: ['chat', 'auto', 'project', 'decision', 'confirmed'] };
   }
 
   const preference = extractAfterPattern(text, [/(?:prefiro|gosto que|quero que voce|quero que você|a partir de agora)\s+(.+)$/i]);
   if (preference) {
-    return { kind: 'preference', scope: 'user', title: 'Preferência do usuário', content: `Preferência registrada: ${preference}.`, salience: 4, tags: ['chat', 'auto', 'preference'] };
+    return { kind: 'preference', scope: 'user', title: 'Preferência do usuário', content: `Preferência registrada: ${preference}.`, salience: 4, tags: ['chat', 'auto', 'preference', 'confirmed'] };
   }
 
   const looksPersistent = /\b(lembre|memorize|guarde|salve|registr|sou |meu |minha |cliente|empresa|curso|livro|senai|prazo|objetivo|pend[eê]ncia|patch|document engine|action engine|voice engine|memory engine|next\.js|nextjs|vercel|supabase|gemini|claude|pr[oó]xima etapa|pr[oó]ximo passo)\b/i.test(text);
@@ -423,12 +505,13 @@ function extractMemoryCandidate(userMessage: string, projectId?: string | null):
 
   let kind: ImportantMemory['kind'] = 'fact';
   if (lower.includes('pendencia') || lower.includes('pendência')) kind = 'task';
-  else if (lower.includes('prefiro')) kind = 'preference';
+  else if (lower.includes('prefiro') || lower.includes('gosto')) kind = 'preference';
   else if (lower.includes('projeto') || lower.includes('vercel') || lower.includes('supabase') || lower.includes('next')) kind = 'project';
   else if (lower.includes('decisao') || lower.includes('definimos') || lower.includes('aprovado')) kind = 'decision';
 
-  return { kind, scope: projectId ? 'project' : 'user', title: kind === 'project' ? 'Informação do projeto' : compactText(text, 64), content: compactText(`Usuário informou: ${text}`, 500), salience: lower.includes('lembre') || lower.includes('memorize') || kind === 'decision' || kind === 'task' ? 5 : 4, tags: projectId ? ['chat', 'auto', 'project'] : ['chat', 'auto'] };
+  return { kind, scope: projectId && kind !== 'preference' ? 'project' : 'user', title: kind === 'project' ? 'Informação do projeto' : compactText(text, 64), content: compactText(`Usuário informou: ${text}`, 500), salience: lower.includes('lembre') || lower.includes('memorize') || kind === 'decision' || kind === 'task' ? 5 : 4, tags: kind === 'preference' ? ['chat', 'auto', 'preference'] : (projectId ? ['chat', 'auto', 'project'] : ['chat', 'auto']) };
 }
+
 
 async function insertMessages(core: SupabaseLike, messages: any[]) {
   let result = await core.from('memory_messages').insert(messages);
@@ -675,7 +758,7 @@ export async function getMemoryDebug(userId: string): Promise<{ ok: boolean; err
     const { context, error } = await getMemoryContext(userId, 18, 'arquitetura projeto banco framework deploy próxima etapa IA estratégica IA operacional', projectId ?? null);
     const temporal = buildTemporalContext();
     const counts = await getMemoryOverview(userId);
-    const promptPreview = [temporalPromptBlock(temporal), buildMemoryPrompt(context, 'debug memória projeto')].join('\n\n').slice(0, 6000);
+    const promptPreview = buildMemoryPrompt(context, 'debug memória projeto').slice(0, 6000);
 
     const addSource = (source: 'relevant' | 'project' | 'user', items: ImportantMemory[]) => items.map((item) => ({
       id: item.id,

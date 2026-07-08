@@ -28,15 +28,27 @@ export const anthropicProvider: AIProviderAdapter = {
 
     const response = await client.messages.create({
       model,
-      max_tokens: 1200,
+      max_tokens: 1500,
       ...(systemPrompt ? { system: systemPrompt } : {}),
-      messages: [{ role: 'user', content: message }]
+      messages: [{ role: 'user', content: message }],
+      // Busca na web nativa da Anthropic (executada pelo servidor da
+      // própria Anthropic — não precisa de chave nova nem de outro
+      // provedor). O modelo decide sozinho quando vale a pena buscar.
+      tools: [{ type: 'web_search_20250305', name: 'web_search' } as unknown as Anthropic.Tool]
     });
 
-    const textBlock = response.content.find((block) => block.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
+    // Com busca na web habilitada, a resposta pode ter vários blocos de
+    // texto intercalados com blocos de busca/uso de ferramenta — juntamos
+    // todos os blocos de texto, na ordem, para não truncar a resposta.
+    const text = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n\n')
+      .trim();
+
+    if (!text) {
       throw new Error('Resposta da Anthropic sem conteúdo de texto.');
     }
-    return textBlock.text;
+    return text;
   }
 };
