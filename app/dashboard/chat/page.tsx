@@ -343,6 +343,7 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  const shouldKeepListeningRef = useRef(false);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
@@ -400,6 +401,7 @@ export default function ChatPage() {
     window.speechSynthesis?.cancel();
     setSpeakingIndex(null);
     if (isListening) {
+      shouldKeepListeningRef.current = false;
       recognitionRef.current?.stop();
       setIsListening(false);
     }
@@ -411,6 +413,7 @@ export default function ChatPage() {
     if (!speechSupported) return;
 
     if (isListening) {
+      shouldKeepListeningRef.current = false;
       recognitionRef.current?.stop();
       return;
     }
@@ -418,17 +421,44 @@ export default function ChatPage() {
     const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognitionCtor();
     recognition.lang = 'pt-BR';
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results?.[0]?.[0]?.transcript ?? '';
-      if (transcript) setInput((current) => (current ? `${current} ${transcript}` : transcript));
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (event.results[i].isFinal) transcript += event.results[i][0].transcript;
+      }
+      if (transcript.trim()) {
+        setInput((current) => (current ? `${current} ${transcript.trim()}` : transcript.trim()));
+      }
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+
+    recognition.onerror = (event: any) => {
+      // 'no-speech' acontece naturalmente em pausas de silêncio — não deve
+      // encerrar a escuta contínua, só erros reais (ex: permissão negada).
+      if (event?.error === 'no-speech' || event?.error === 'aborted') return;
+      shouldKeepListeningRef.current = false;
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      // Alguns navegadores encerram sozinhos após alguns segundos mesmo
+      // com continuous=true. Se o usuário não pediu pra parar, reinicia.
+      if (shouldKeepListeningRef.current) {
+        try {
+          recognition.start();
+          return;
+        } catch {
+          // instância não pôde reiniciar — encerra de fato
+        }
+      }
+      setIsListening(false);
+    };
 
     recognitionRef.current = recognition;
+    shouldKeepListeningRef.current = true;
     setIsListening(true);
     recognition.start();
   }
@@ -444,6 +474,18 @@ export default function ChatPage() {
     return matched ?? pool[0];
   }
 
+  function sanitizeForSpeech(raw: string): string {
+    return raw
+      // Remove emojis e outros símbolos pictográficos (o navegador às vezes
+      // "descreve" o emoji em voz alta, ex: "cara sorrindo").
+      .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\uFE0F]/gu, '')
+      // Remove marcação markdown comum (**negrito**, _itálico_, `código`)
+      // que alguns motores de voz também tentam pronunciar.
+      .replace(/[*_`~]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   function speakMessage(text: string, index: number, msgPersona: Persona) {
     if (typeof window.speechSynthesis === 'undefined') return;
 
@@ -454,7 +496,7 @@ export default function ChatPage() {
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(sanitizeForSpeech(text));
     utterance.lang = 'pt-BR';
     const voice = pickVoiceForPersona(msgPersona);
     if (voice) utterance.voice = voice;
