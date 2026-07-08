@@ -1,6 +1,4 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { PDFParse } from 'pdf-parse';
-import mammoth from 'mammoth';
 
 const BUCKET = 'knowledge-hub';
 
@@ -19,12 +17,14 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   const lower = fileName.toLowerCase();
   try {
     if (mimeType.includes('pdf') || lower.endsWith('.pdf')) {
+      const { PDFParse } = await import('pdf-parse');
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
       await parser.destroy();
       return { text: result.text?.trim() || null, status: 'done', error: null };
     }
     if (mimeType.includes('wordprocessingml') || lower.endsWith('.docx')) {
+      const mammoth = (await import('mammoth')).default;
       const result = await mammoth.extractRawText({ buffer });
       return { text: result.value?.trim() || null, status: 'done', error: null };
     }
