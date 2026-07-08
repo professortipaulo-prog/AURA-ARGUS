@@ -197,6 +197,10 @@ export default function HomePage() {
       <footer className="psfhome-footer">
         <strong>AURA / ARGUS</strong>
         <span>AI Operating System · PSF Editora e Consultoria</span>
+        <span>
+          Desenvolvido por Paulo da Silva Filho © 2026. Todos os direitos reservados. ·{' '}
+          <a href="https://profpaulofilho.github.io/" target="_blank" rel="noopener noreferrer">Contato</a>
+        </span>
       </footer>
     </main>
   );

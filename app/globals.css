@@ -638,6 +638,8 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .psfhome-module-list small { color: #aab8ce; text-align: right; }
 .psfhome-footer { max-width: 1720px; margin: 32px auto 0; padding: 26px 0; color: #8ea4c2; display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid rgba(148,163,184,.14); }
 .psfhome-footer strong { color: #fff; }
+.psfhome-footer a { color: #4fd1ff; text-decoration: underline; text-underline-offset: 3px; }
+.psfhome-footer a:hover { color: #7dd3fc; }
 
 .chat-avatar-orbit { display: none !important; }
 .chat-avatar-card { min-height: 136px; grid-template-columns: 118px minmax(0, 1fr); }
