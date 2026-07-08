@@ -581,10 +581,10 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .psfhome-btn-ghost, .psfhome-btn-glass { background: rgba(255,255,255,.055); backdrop-filter: blur(12px); }
 .psfhome-btn-large { min-height: 70px; padding-inline: 34px; border-radius: 24px; font-size: 19px; }
 .psfhome-hero { max-width: 1720px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, .95fr) minmax(420px, .9fr) minmax(360px, .7fr); gap: 28px; align-items: center; }
-.psfhome-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 28px; color: #a9e9ff; font-weight: 900; text-transform: uppercase; letter-spacing: .28em; }
+.psfhome-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 28px; color: #4fd1ff; font-family: 'Chakra Petch', ui-monospace, monospace; font-weight: 600; text-transform: uppercase; letter-spacing: .32em; font-size: 13px; }
 .psfhome-eyebrow i { width: 11px; height: 11px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 18px #22c55e; }
-.psfhome-copy h1 { max-width: 720px; margin: 0; color: #fff; font-size: clamp(54px, 5.3vw, 98px); line-height: .98; letter-spacing: -.07em; }
-.psfhome-copy h1 span { background: linear-gradient(90deg, #38bdf8, #8b5cf6, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.psfhome-copy h1 { max-width: 720px; margin: 0; color: #f3f7ff; font-family: 'Chakra Petch', ui-sans-serif, sans-serif; font-weight: 700; font-size: clamp(54px, 5.3vw, 92px); line-height: .98; letter-spacing: -.02em; }
+.psfhome-copy h1 span { color: transparent; -webkit-text-stroke: 1.5px #4fd1ff; }
 .psfhome-lead { max-width: 720px; margin: 28px 0 30px; color: #c8d5e9; font-size: 21px; line-height: 1.75; }
 .psfhome-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 34px; max-width: 660px; }
 .psfhome-mini-card, .psfhome-panel, .psfhome-meaning-card, .psfhome-philosophy-card, .psfhome-anagram { border: 1px solid rgba(148,163,184,.17); background: linear-gradient(180deg, rgba(11,18,36,.70), rgba(5,11,26,.84)); border-radius: 26px; box-shadow: 0 28px 90px rgba(0,0,0,.30), inset 0 0 46px rgba(255,255,255,.025); backdrop-filter: blur(16px); }
@@ -593,15 +593,16 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .psfhome-mini-card strong { display: block; color: #fff; font-size: 19px; }
 .psfhome-mini-card p { margin: 10px 0 0; color: #aebdd3; line-height: 1.6; }
 .psfhome-avatars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
-.psfhome-avatar { position: relative; overflow: hidden; min-height: 640px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; border: 1px solid rgba(34,211,238,.22); border-radius: 34px; background: radial-gradient(circle at 50% 36%, rgba(34,211,238,.16), transparent 30%), rgba(5,10,24,.70); padding: 26px; box-shadow: 0 30px 120px rgba(0,0,0,.34), inset 0 0 70px rgba(255,255,255,.025); }
-.psfhome-avatar-aura { border-color: rgba(168,85,247,.34); background: radial-gradient(circle at 50% 36%, rgba(168,85,247,.18), transparent 31%), rgba(5,10,24,.72); }
-.psfhome-avatar-orbit { position: absolute; width: 310px; height: 310px; top: 76px; border-radius: 999px; border: 1px solid rgba(34,211,238,.34); box-shadow: 0 0 70px rgba(34,211,238,.22), inset 0 0 50px rgba(34,211,238,.10); animation: psfPulse 4.6s ease-in-out infinite; }
-.psfhome-avatar-aura .psfhome-avatar-orbit { border-color: rgba(168,85,247,.42); box-shadow: 0 0 70px rgba(168,85,247,.24), inset 0 0 50px rgba(168,85,247,.13); }
-.psfhome-avatar img { position: absolute; top: 70px; width: min(88%, 390px); height: 420px; object-fit: cover; object-position: center top; border-radius: 999px 999px 34px 34px; mask-image: linear-gradient(#000 72%, transparent 100%); filter: drop-shadow(0 34px 60px rgba(0,0,0,.55)); animation: psfBreathe 5.2s ease-in-out infinite; }
-.psfhome-avatar h2 { position: relative; margin: 0; font-size: 42px; color: #38bdf8; letter-spacing: .04em; }
+.psfhome-avatar { position: relative; overflow: hidden; min-height: 640px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; text-align: left; border: 1px solid rgba(34,211,238,.22); border-radius: 18px; background: #050a18; padding: 26px; box-shadow: 0 30px 120px rgba(0,0,0,.34); }
+.psfhome-avatar-aura { border-color: rgba(168,85,247,.34); }
+.psfhome-avatar-orbit { position: absolute; top: 24px; left: 26px; z-index: 2; font-family: 'Chakra Petch', monospace; font-size: 12px; letter-spacing: .3em; color: #4fd1ff; text-transform: uppercase; animation: none; width: auto; height: auto; border: none; box-shadow: none; }
+.psfhome-avatar-aura .psfhome-avatar-orbit { color: #c084fc; }
+.psfhome-avatar img { position: absolute; inset: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; clip-path: polygon(18% 0, 100% 0, 100% 100%, 0% 100%); border-radius: 0; mask-image: none; filter: saturate(1.08) contrast(1.05) drop-shadow(0 34px 60px rgba(0,0,0,.55)); animation: psfBreathe 5.2s ease-in-out infinite; }
+.psfhome-avatar::after { content: ''; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 38%, #050a18 96%); pointer-events: none; }
+.psfhome-avatar h2 { position: relative; z-index: 2; margin: 0; font-family: 'Chakra Petch', sans-serif; font-size: 38px; color: #38bdf8; letter-spacing: .02em; }
 .psfhome-avatar-aura h2 { color: #c084fc; }
-.psfhome-avatar p { position: relative; margin: 6px 0 0; color: #eaf2ff; font-weight: 800; }
-.psfhome-avatar small { position: relative; display: block; margin-top: 12px; color: #c6d3e6; line-height: 1.5; }
+.psfhome-avatar p { position: relative; z-index: 2; margin: 6px 0 0; color: #eaf2ff; font-weight: 800; }
+.psfhome-avatar small { position: relative; z-index: 2; display: block; margin-top: 12px; color: #c6d3e6; line-height: 1.5; }
 .psfhome-anagram { min-height: 540px; display: grid; align-content: center; justify-items: center; text-align: center; padding: 36px; }
 .psfhome-anagram span, .psfhome-section-title span, .psfhome-panel > span { color: #c084fc; text-transform: uppercase; letter-spacing: .22em; font-weight: 900; }
 .psfhome-anagram h2 { margin: 26px 0; font-size: 44px; letter-spacing: .04em; }

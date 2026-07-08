@@ -107,14 +107,14 @@ export default function HomePage() {
 
         <div className="psfhome-avatars" id="assistentes" aria-label="Avatares AURA e ARGUS">
           <div className="psfhome-avatar psfhome-avatar-aura">
-            <span className="psfhome-avatar-orbit" />
+            <span className="psfhome-avatar-orbit">AURA</span>
             <img src="/avatars/aura.webp" alt="Avatar da AURA" />
             <h2>AURA</h2>
             <p>Assistente Universal de Raciocínio e Ação</p>
             <small>Compreende, organiza e orienta.</small>
           </div>
           <div className="psfhome-avatar psfhome-avatar-argus">
-            <span className="psfhome-avatar-orbit" />
+            <span className="psfhome-avatar-orbit">ARGUS</span>
             <img src="/avatars/argus.webp" alt="Avatar do ARGUS" />
             <h2>ARGUS</h2>
             <p>Assistente de Raciocínio, Gestão, Unificação e Supervisão</p>
