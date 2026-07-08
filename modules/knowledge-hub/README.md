@@ -1,11 +1,18 @@
 # Módulo: knowledge-hub
 
-**Status: não implementado nesta sprint.**
+**Status: parcialmente implementado (PATCH_086).**
 
-Este diretório existe para manter a estrutura oficial de módulos
-definida na arquitetura (COM-002 / Sprint-002) e será implementado em
-sprint futura, conforme o Roadmap Geral (COM-005).
+Já funciona de verdade (fora deste diretório por enquanto):
+- Upload de arquivos (PDF, Word, TXT, Markdown) para um bucket privado do
+  Supabase Storage, um por usuário.
+- Extração de texto real dos formatos suportados.
+- Busca de contexto por palavra-chave, consultada automaticamente pelo
+  Chat IA e pela geração de documentos (Action Engine).
+- Interface em `/dashboard/documents`.
 
-Sprint 004 (CLAUDE-004) tem escopo restrito ao Núcleo de Inteligência:
-AI Router, Conversation Manager, Context Builder, Prompt Builder,
-Memory Retrieval, Personality Engine e Workflow Engine.
+Pendente para uma próxima etapa:
+- Extrair a lógica de `lib/knowledge/server.ts` para viver dentro deste
+  módulo, seguindo o padrão completo dos outros módulos implementados
+  (memory, ai-router).
+- Busca por significado (embeddings/vetorial), em vez de só palavra-chave.
+- Suporte a mais formatos (Excel, PowerPoint, imagens com OCR).

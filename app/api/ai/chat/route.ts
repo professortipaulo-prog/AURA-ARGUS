@@ -3,6 +3,7 @@ import { sendChat } from '@/lib/ai/ai-router';
 import { getCurrentUserIdentity } from '@/lib/identity/server';
 import { buildMemoryPrompt, getMemoryContext, getOrCreateActiveProject, saveChatTurn } from '@/lib/memory/server';
 import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
+import { getKnowledgeContext } from '@/lib/knowledge/server';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 function friendlyAIError(error: unknown) {
@@ -61,10 +62,11 @@ export async function POST(request: Request) {
 
     activeProjectId = activeProjectId ?? memory.context.project?.id ?? null;
     const memoryPrompt = buildMemoryPrompt(memory.context, body.message);
+    const knowledgeContext = user?.id ? await getKnowledgeContext(user.id, body.message) : null;
     const systemPrompt = buildPersonaSystemPrompt({
       persona,
       identity,
-      memoryPrompt,
+      memoryPrompt: knowledgeContext ? `${memoryPrompt}\n\n${knowledgeContext}` : memoryPrompt,
       extraSystemPrompt: body.systemPrompt
     });
 

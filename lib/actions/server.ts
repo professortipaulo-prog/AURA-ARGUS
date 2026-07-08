@@ -7,6 +7,7 @@ import { sendChat } from '@/lib/ai/ai-router';
 import { getCurrentUserIdentity } from '@/lib/identity/server';
 import { buildMemoryPrompt, getMemoryContext } from '@/lib/memory/server';
 import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
+import { getKnowledgeContext } from '@/lib/knowledge/server';
 
 function isSchemaError(message?: string): boolean {
   if (!message) return false;
@@ -124,7 +125,12 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
         ? await getMemoryContext(user.id, 12, requestedContent, request.projectId ?? null)
         : { context: { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] } };
       const memoryPrompt = buildMemoryPrompt(memory.context, requestedContent);
-      const systemPrompt = buildPersonaSystemPrompt({ persona, identity, memoryPrompt });
+      const knowledgeContext = user?.id ? await getKnowledgeContext(user.id, requestedContent) : null;
+      const systemPrompt = buildPersonaSystemPrompt({
+        persona,
+        identity,
+        memoryPrompt: knowledgeContext ? `${memoryPrompt}\n\n${knowledgeContext}` : memoryPrompt
+      });
 
       const brief = `Elabore o CONTEUDO COMPLETO de um documento no formato "${request.format ?? 'md'}", com o titulo "${request.title ?? 'Documento AURA ARGUS'}".\n\nSolicitacao do usuario: "${requestedContent}"\n\nDesenvolva um texto completo, bem estruturado, em portugues do Brasil, usando o que voce sabe sobre o usuario (perfil e memoria) quando for relevante. Responda APENAS com o conteudo final do documento — sem saudacoes, sem comentarios sobre a tarefa, sem introducoes tipo "aqui esta o documento".`;
 
