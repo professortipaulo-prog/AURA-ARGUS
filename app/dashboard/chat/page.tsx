@@ -397,6 +397,12 @@ export default function ChatPage() {
   }, [input]);
 
   function switchPersona(next: Persona) {
+    window.speechSynthesis?.cancel();
+    setSpeakingIndex(null);
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
     setPersona(next);
     setInput('');
   }
@@ -427,7 +433,18 @@ export default function ChatPage() {
     recognition.start();
   }
 
-  function speakMessage(text: string, index: number) {
+  function pickVoiceForPersona(targetPersona: Persona): SpeechSynthesisVoice | undefined {
+    const voices = window.speechSynthesis?.getVoices?.() ?? [];
+    const ptVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith('pt'));
+    const pool = ptVoices.length > 0 ? ptVoices : voices;
+    const femaleHints = ['female', 'mulher', 'maria', 'luciana', 'fernanda', 'vitoria', 'vitória', 'camila'];
+    const maleHints = ['male', 'homem', 'daniel', 'ricardo', 'felipe', 'joao', 'joão', 'antonio', 'antônio'];
+    const hints = targetPersona === 'aura' ? femaleHints : maleHints;
+    const matched = pool.find((voice) => hints.some((hint) => voice.name.toLowerCase().includes(hint)));
+    return matched ?? pool[0];
+  }
+
+  function speakMessage(text: string, index: number, msgPersona: Persona) {
     if (typeof window.speechSynthesis === 'undefined') return;
 
     if (speakingIndex === index) {
@@ -439,6 +456,12 @@ export default function ChatPage() {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
+    const voice = pickVoiceForPersona(msgPersona);
+    if (voice) utterance.voice = voice;
+    // Reforço de diferenciação: mesmo quando o navegador só tem 1 voz pt-BR
+    // disponível, o tom (pitch) garante que AURA e ARGUS não soem idênticos.
+    utterance.pitch = msgPersona === 'aura' ? 1.2 : 0.82;
+    utterance.rate = msgPersona === 'aura' ? 1.02 : 0.96;
     utterance.onend = () => setSpeakingIndex(null);
     utterance.onerror = () => setSpeakingIndex(null);
     setSpeakingIndex(index);
@@ -608,7 +631,7 @@ export default function ChatPage() {
                         type="button"
                         className="chat-speak-button"
                         aria-label={speakingIndex === index ? 'Parar leitura' : 'Ouvir resposta'}
-                        onClick={() => speakMessage(msg.content, index)}
+                        onClick={() => speakMessage(msg.content, index, msgPersona)}
                       >
                         {speakingIndex === index ? '⏹' : '🔊'}
                       </button>
