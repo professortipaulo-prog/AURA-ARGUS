@@ -5,17 +5,42 @@ import PptxGenJS from 'pptxgenjs';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
+import sizeOf from 'image-size';
 
-let cachedArgusBorder: Buffer | null = null;
-function getArgusBorderImage(): Buffer | null {
-  if (cachedArgusBorder) return cachedArgusBorder;
+export type BorderVariant = 1 | 2;
+
+const BORDER_FILES: Record<'aura' | 'argus', Record<BorderVariant, { file: string; type: 'jpg' | 'png' }>> = {
+  aura: {
+    1: { file: 'aura-border-1-ondas.jpg', type: 'jpg' },
+    2: { file: 'aura-border-2-floral.jpg', type: 'jpg' }
+  },
+  argus: {
+    1: { file: 'argus-border-1-circuito.png', type: 'png' },
+    2: { file: 'argus-border-2-hexagonal.png', type: 'png' }
+  }
+};
+
+type BorderImage = { data: Buffer; type: 'jpg' | 'png'; width: number; height: number };
+
+const borderCache = new Map<string, BorderImage | null>();
+
+function getBorderImage(persona?: 'aura' | 'argus', variant: BorderVariant = 1): BorderImage | null {
+  if (!persona) return null;
+  const cacheKey = `${persona}-${variant}`;
+  if (borderCache.has(cacheKey)) return borderCache.get(cacheKey) ?? null;
+
   try {
-    const imagePath = path.join(process.cwd(), 'public', 'branding', 'argus-page-border.png');
-    cachedArgusBorder = fs.readFileSync(imagePath);
-    return cachedArgusBorder;
+    const config = BORDER_FILES[persona][variant];
+    const imagePath = path.join(process.cwd(), 'public', 'branding', config.file);
+    const data = fs.readFileSync(imagePath);
+    const dimensions = sizeOf(data);
+    const result: BorderImage = { data, type: config.type, width: dimensions.width ?? 794, height: dimensions.height ?? 1123 };
+    borderCache.set(cacheKey, result);
+    return result;
   } catch {
     // Sem imagem disponivel (ex: ambiente sem o arquivo) -> documento segue
     // sem borda, sem quebrar a geracao.
+    borderCache.set(cacheKey, null);
     return null;
   }
 }
@@ -103,33 +128,41 @@ function toSvg(title: string, content: string): string {
 </svg>`;
 }
 
-async function toDocxBuffer(title: string, content: string, persona?: 'aura' | 'argus'): Promise<Buffer> {
+async function toDocxBuffer(title: string, content: string, persona?: 'aura' | 'argus', borderVariant: BorderVariant = 1): Promise<Buffer> {
   const paragraphs = content
     .split(/\n{2,}/)
     .filter(Boolean)
     .map((block) => new Paragraph({ children: [new TextRun(block.replace(/\n/g, ' '))], spacing: { after: 200 } }));
 
-  // A4 em twips (unidade do Word): 11906 x 16838.
+  // A4 em twips (unidade do Word): 11906 x 16838. Em pixels a 96dpi: 794x1123.
   const pageWidthTwips = 11906;
   const pageHeightTwips = 16838;
+  const pageWidthPx = 794;
+  const pageHeightPx = 1123;
 
-  const borderImage = persona === 'argus' ? getArgusBorderImage() : null;
+  const border = getBorderImage(persona, borderVariant);
 
-  const header = borderImage
+  // Encaixe proporcional ("contain"): a imagem nunca é esticada nem
+  // cortada, só escalada para caber inteira na página, preservando sua
+  // proporção original — importante porque as bordas enviadas têm
+  // proporções bem diferentes entre si (algumas batem quase exato com o
+  // A4, outras são bem mais estreitas/altas).
+  const scale = border ? Math.min(pageWidthPx / border.width, pageHeightPx / border.height) : 1;
+  const renderWidth = border ? Math.round(border.width * scale) : 0;
+  const renderHeight = border ? Math.round(border.height * scale) : 0;
+
+  const header = border
     ? new Header({
         children: [
           new Paragraph({
             children: [
               new ImageRun({
-                data: borderImage,
-                type: 'png',
-                // Dimensoes em pixels equivalentes ao tamanho de uma pagina
-                // A4 a 96dpi, preservando a proporcao da imagem enviada
-                // (1055x1491 -> mesma razao de A4).
-                transformation: { width: 794, height: 1123 },
+                data: border.data,
+                type: border.type,
+                transformation: { width: renderWidth, height: renderHeight },
                 floating: {
                   horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER },
-                  verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.TOP },
+                  verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.CENTER },
                   behindDocument: true,
                   wrap: { type: TextWrappingType.NONE }
                 }
@@ -274,7 +307,7 @@ function renderDocument(format: DocumentFormat, title: string, content: string):
 
 const BINARY_FORMATS = new Set<DocumentFormat>(['docx', 'xlsx', 'pptx', 'pdf']);
 
-export async function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat; persona?: 'aura' | 'argus' }): Promise<ActionArtifact> {
+export async function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat; persona?: 'aura' | 'argus'; borderVariant?: BorderVariant }): Promise<ActionArtifact> {
   const format = params.format ?? 'md';
   const title = params.title?.trim() || 'Documento AURA ARGUS';
   const content = params.content?.trim() || 'Conteudo inicial gerado pelo AURA/ARGUS.';
@@ -283,7 +316,7 @@ export async function createDocumentArtifact(params: { title: string; content: s
   if (BINARY_FORMATS.has(format)) {
     switch (format) {
       case 'docx':
-        buffer = await toDocxBuffer(title, content, params.persona);
+        buffer = await toDocxBuffer(title, content, params.persona, params.borderVariant ?? 1);
         break;
       case 'xlsx':
         buffer = await toXlsxBuffer(title, content);

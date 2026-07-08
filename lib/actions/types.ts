@@ -31,6 +31,7 @@ export type ExecuteActionRequest = {
   url?: string;
   phone?: string;
   message?: string;
+  borderVariant?: 1 | 2;
 };
 
 export type ActionArtifact = {

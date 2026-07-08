@@ -18,6 +18,7 @@
     "@supabase/supabase-js": "2.45.4",
     "docx": "^9.7.1",
     "exceljs": "^4.4.0",
+    "image-size": "^2.0.2",
     "next": "14.2.35",
     "pdf-lib": "^1.17.1",
     "pptxgenjs": "^4.0.1",

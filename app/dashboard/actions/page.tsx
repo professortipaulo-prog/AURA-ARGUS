@@ -76,6 +76,7 @@ export default function ActionsPage() {
   const [content, setContent] = useState(templates.md.content);
   const [format, setFormat] = useState<DocumentFormat>('md');
   const [documentPersona, setDocumentPersona] = useState<'aura' | 'argus'>('aura');
+  const [borderVariant, setBorderVariant] = useState<1 | 2>(1);
   const [result, setResult] = useState<ExecuteActionResult | null>(null);
   const [history, setHistory] = useState<ExecuteActionResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,7 +111,7 @@ export default function ActionsPage() {
       const response = await fetch('/api/actions/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'document.create', title, content, format, persona: documentPersona })
+        body: JSON.stringify({ action: 'document.create', title, content, format, persona: documentPersona, borderVariant })
       });
       const data = (await response.json()) as ExecuteActionResult;
       setResult(data);
@@ -201,9 +202,27 @@ export default function ActionsPage() {
               <span>Persona / marca do documento</span>
               <select className="aios-input" value={documentPersona} onChange={(event) => setDocumentPersona(event.target.value as 'aura' | 'argus')}>
                 <option value="aura">AURA</option>
-                <option value="argus">ARGUS (com borda decorativa no Word)</option>
+                <option value="argus">ARGUS</option>
               </select>
             </label>
+            {format === 'docx' && (
+              <label className="aios-form-control">
+                <span>Estilo da borda (Word)</span>
+                <select className="aios-input" value={borderVariant} onChange={(event) => setBorderVariant(Number(event.target.value) as 1 | 2)}>
+                  {documentPersona === 'aura' ? (
+                    <>
+                      <option value={1}>Ondas azuis</option>
+                      <option value={2}>Floral azul</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value={1}>Circuito</option>
+                      <option value={2}>Hexagonal</option>
+                    </>
+                  )}
+                </select>
+              </label>
+            )}
           </div>
 
           <label className="aios-form-control">
