@@ -344,9 +344,11 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recognitionRef = useRef<any>(null);
   const shouldKeepListeningRef = useRef(false);
+  const lastSpokenIndexRef = useRef<number>(0);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const [autoSpeak, setAutoSpeak] = useState(true);
 
   const active = PERSONAS[persona];
   const activeProject = useMemo(() => projects.find((project) => project.id === projectId) ?? projects[0] ?? DEFAULT_PROJECT, [projectId, projects]);
@@ -396,6 +398,29 @@ export default function ChatPage() {
     node.style.height = 'auto';
     node.style.height = `${Math.min(node.scrollHeight, 144)}px`;
   }, [input]);
+
+  // Rede de segurança: garante que qualquer fala em andamento pare sempre
+  // que a persona ativa mudar, por qualquer caminho de código (não só o
+  // clique direto no card), evitando o áudio de uma persona "vazar" para
+  // a conversa da outra.
+  useEffect(() => {
+    window.speechSynthesis?.cancel();
+    setSpeakingIndex(null);
+  }, [persona]);
+
+  // Áudio automático: fala a última resposta do assistente assim que ela
+  // chega, sem exigir clique manual no botão de ouvir. Ligado por padrão;
+  // o usuário pode desligar no botão de áudio automático.
+  useEffect(() => {
+    if (!autoSpeak || !speechSupported) return;
+    const lastIndex = messages.length - 1;
+    if (lastIndex < 0 || lastIndex === lastSpokenIndexRef.current) return;
+    const lastMessage = messages[lastIndex];
+    if (!lastMessage || lastMessage.role !== 'assistant') return;
+    lastSpokenIndexRef.current = lastIndex;
+    speakMessage(lastMessage.content, lastIndex, lastMessage.persona ?? persona);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, autoSpeak, speechSupported]);
 
   function switchPersona(next: Persona) {
     window.speechSynthesis?.cancel();
@@ -744,7 +769,19 @@ export default function ChatPage() {
                 ✦
               </button>
             </div>
-            <span>Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}</span>
+            <span>
+              Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}
+              {speechSupported && (
+                <button
+                  type="button"
+                  className="chat-speak-button"
+                  onClick={() => setAutoSpeak((current) => !current)}
+                  aria-label={autoSpeak ? 'Desligar áudio automático' : 'Ligar áudio automático'}
+                >
+                  {' '}• Áudio automático: {autoSpeak ? '🔊 ligado' : '🔇 desligado'}
+                </button>
+              )}
+            </span>
           </form>
         </div>
       </section>
