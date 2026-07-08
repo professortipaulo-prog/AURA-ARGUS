@@ -5,9 +5,10 @@ export type ActionStatus = 'queued' | 'running' | 'completed' | 'failed';
 export type ActionKind =
   | 'document.create'
   | 'file.prepare_download'
-  | 'tool.list_capabilities';
+  | 'tool.list_capabilities'
+  | 'link.prepare';
 
-export type DocumentFormat = 'md' | 'html' | 'txt' | 'csv' | 'json' | 'svg' | 'doc';
+export type DocumentFormat = 'md' | 'html' | 'txt' | 'csv' | 'json' | 'svg' | 'doc' | 'docx' | 'xlsx' | 'pptx' | 'pdf';
 
 export type ActionCapability = {
   id: ActionKind | string;
@@ -26,6 +27,10 @@ export type ExecuteActionRequest = {
   content?: string;
   format?: DocumentFormat;
   metadata?: Record<string, unknown>;
+  linkTarget?: 'whatsapp' | 'url';
+  url?: string;
+  phone?: string;
+  message?: string;
 };
 
 export type ActionArtifact = {
@@ -38,12 +43,19 @@ export type ActionArtifact = {
   dataUrl: string;
 };
 
+export type PreparedLink = {
+  url: string;
+  label: string;
+  requiresConfirmation: boolean;
+};
+
 export type ExecuteActionResult = {
   ok: boolean;
   action: ActionKind;
   status: ActionStatus;
   runId?: string;
   artifact?: ActionArtifact;
+  link?: PreparedLink;
   message: string;
   warnings?: string[];
 };

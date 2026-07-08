@@ -59,11 +59,54 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
     return { ok: true, action: request.action, status: 'completed', runId: runId ?? undefined, message: 'Capacidades carregadas.' };
   }
 
+  if (request.action === 'link.prepare') {
+    const target = request.linkTarget ?? 'url';
+    let url: string;
+    let label: string;
+    const requiresConfirmation = target === 'whatsapp';
+
+    if (target === 'whatsapp') {
+      const digits = (request.phone ?? '').replace(/\D/g, '');
+      if (!digits) {
+        return { ok: false, action: request.action, status: 'failed', message: 'Numero de WhatsApp obrigatorio (com DDI+DDD) para preparar este link.' };
+      }
+      const text = request.message ? `?text=${encodeURIComponent(request.message)}` : '';
+      url = `https://wa.me/${digits}${text}`;
+      label = 'Abrir WhatsApp Web com a mensagem preparada';
+    } else {
+      const rawUrl = request.url ?? '';
+      try {
+        url = new URL(rawUrl).toString();
+      } catch {
+        return { ok: false, action: request.action, status: 'failed', message: 'URL invalida. Informe uma URL completa, ex: https://exemplo.com' };
+      }
+      label = 'Abrir link em nova aba';
+    }
+
+    const runId = await persistRun({
+      userId: session.userId,
+      projectId: request.projectId,
+      action: request.action,
+      status: 'completed',
+      requestPayload: { ...request, message: request.message?.slice(0, 500) },
+      resultPayload: { link: { url, label, requiresConfirmation } }
+    });
+
+    return {
+      ok: true,
+      action: request.action,
+      status: 'completed',
+      runId: runId ?? undefined,
+      link: { url, label, requiresConfirmation },
+      message: label
+    };
+  }
+
   if (request.action !== 'document.create') {
     return { ok: false, action: request.action, status: 'failed', message: `Acao ainda nao suportada: ${request.action}` };
   }
 
-  const artifact = createDocumentArtifact({
+  const artifact = await createDocumentArtifact({
     title: request.title ?? 'Documento AURA ARGUS',
     content: request.content ?? '',
     format: request.format ?? 'md'

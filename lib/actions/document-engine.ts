@@ -1,4 +1,8 @@
 import type { ActionArtifact, DocumentFormat } from './types';
+import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx';
+import ExcelJS from 'exceljs';
+import PptxGenJS from 'pptxgenjs';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const MIME: Record<DocumentFormat, string> = {
   md: 'text/markdown; charset=utf-8',
@@ -7,7 +11,11 @@ const MIME: Record<DocumentFormat, string> = {
   csv: 'text/csv; charset=utf-8',
   json: 'application/json; charset=utf-8',
   svg: 'image/svg+xml; charset=utf-8',
-  doc: 'application/msword; charset=utf-8'
+  doc: 'application/msword; charset=utf-8',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  pdf: 'application/pdf'
 };
 
 function sanitizeFileName(input: string): string {
@@ -79,6 +87,121 @@ function toSvg(title: string, content: string): string {
 </svg>`;
 }
 
+async function toDocxBuffer(title: string, content: string): Promise<Buffer> {
+  const paragraphs = content
+    .split(/\n{2,}/)
+    .filter(Boolean)
+    .map((block) => new Paragraph({ children: [new TextRun(block.replace(/\n/g, ' '))], spacing: { after: 200 } }));
+
+  const doc = new Document({
+    sections: [
+      {
+        children: [
+          new Paragraph({ text: title, heading: HeadingLevel.HEADING_1 }),
+          new Paragraph({ text: 'Gerado pelo AURA/ARGUS Action Engine', spacing: { after: 300 } }),
+          ...(paragraphs.length ? paragraphs : [new Paragraph({ text: 'Documento sem conteudo informado.' })])
+        ]
+      }
+    ]
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+async function toXlsxBuffer(title: string, content: string): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'AURA/ARGUS Action Engine';
+  const sheet = workbook.addWorksheet(title.slice(0, 30) || 'Documento');
+
+  sheet.columns = [
+    { header: 'Titulo', key: 'title', width: 32 },
+    { header: 'Linha', key: 'line', width: 80 }
+  ];
+  sheet.getRow(1).font = { bold: true };
+
+  const rows = content.split('\n').filter(Boolean);
+  if (rows.length === 0) {
+    sheet.addRow({ title, line: 'Documento sem conteudo informado.' });
+  } else {
+    rows.forEach((line) => sheet.addRow({ title, line }));
+  }
+
+  const arrayBuffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+async function toPptxBuffer(title: string, content: string): Promise<Buffer> {
+  const pptx = new PptxGenJS();
+  const blocks = content.split(/\n{2,}/).filter(Boolean);
+
+  const titleSlide = pptx.addSlide();
+  titleSlide.addText(title, { x: 0.6, y: 1.8, w: 9, h: 1.2, fontSize: 32, bold: true, color: '0F172A' });
+  titleSlide.addText('Gerado pelo AURA/ARGUS Action Engine', { x: 0.6, y: 3, w: 9, h: 0.5, fontSize: 14, color: '64748B' });
+
+  const contentBlocks = blocks.length ? blocks : ['Documento sem conteudo informado.'];
+  for (const block of contentBlocks) {
+    const slide = pptx.addSlide();
+    slide.addText(block.slice(0, 900), { x: 0.6, y: 0.6, w: 9, h: 5, fontSize: 18, color: '0F172A', valign: 'top' });
+  }
+
+  const arrayBuffer = (await pptx.write({ outputType: 'arraybuffer' })) as ArrayBuffer;
+  return Buffer.from(arrayBuffer);
+}
+
+async function toPdfBuffer(title: string, content: string): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const pageWidth = 595.28; // A4
+  const pageHeight = 841.89;
+  const margin = 56;
+  const maxWidth = pageWidth - margin * 2;
+  const bodySize = 12;
+  const lineHeight = 16;
+
+  function wrapText(text: string): string[] {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const attempt = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(attempt, bodySize) > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = attempt;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  const paragraphs = content.split(/\n{2,}/).filter(Boolean);
+  const bodyLines = (paragraphs.length ? paragraphs : ['Documento sem conteudo informado.'])
+    .flatMap((p) => [...wrapText(p), '']);
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let cursorY = pageHeight - margin;
+
+  page.drawText(title.slice(0, 90), { x: margin, y: cursorY, size: 22, font: boldFont, color: rgb(0.06, 0.09, 0.16) });
+  cursorY -= 30;
+  page.drawText('Gerado pelo AURA/ARGUS Action Engine', { x: margin, y: cursorY, size: 10, font, color: rgb(0.4, 0.45, 0.53) });
+  cursorY -= 26;
+
+  for (const line of bodyLines) {
+    if (cursorY < margin) {
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      cursorY = pageHeight - margin;
+    }
+    if (line) page.drawText(line, { x: margin, y: cursorY, size: bodySize, font, color: rgb(0.07, 0.09, 0.14) });
+    cursorY -= lineHeight;
+  }
+
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
+}
+
 function renderDocument(format: DocumentFormat, title: string, content: string): string {
   switch (format) {
     case 'html':
@@ -98,12 +221,34 @@ function renderDocument(format: DocumentFormat, title: string, content: string):
   }
 }
 
-export function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat }): ActionArtifact {
+const BINARY_FORMATS = new Set<DocumentFormat>(['docx', 'xlsx', 'pptx', 'pdf']);
+
+export async function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat }): Promise<ActionArtifact> {
   const format = params.format ?? 'md';
   const title = params.title?.trim() || 'Documento AURA ARGUS';
   const content = params.content?.trim() || 'Conteudo inicial gerado pelo AURA/ARGUS.';
-  const body = renderDocument(format, title, content);
-  const buffer = Buffer.from(body, 'utf8');
+
+  let buffer: Buffer;
+  if (BINARY_FORMATS.has(format)) {
+    switch (format) {
+      case 'docx':
+        buffer = await toDocxBuffer(title, content);
+        break;
+      case 'xlsx':
+        buffer = await toXlsxBuffer(title, content);
+        break;
+      case 'pptx':
+        buffer = await toPptxBuffer(title, content);
+        break;
+      case 'pdf':
+      default:
+        buffer = await toPdfBuffer(title, content);
+        break;
+    }
+  } else {
+    buffer = Buffer.from(renderDocument(format, title, content), 'utf8');
+  }
+
   const extension = format;
   const fileName = `${sanitizeFileName(title)}.${extension}`;
   const mimeType = MIME[format];

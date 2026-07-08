@@ -4,9 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ActionCapability, DocumentFormat, ExecuteActionResult } from '@/lib/actions/types';
 
 const formats: { value: DocumentFormat; label: string; hint: string }[] = [
+  { value: 'docx', label: 'Word (.docx)', hint: 'Documento real do Word, nativo' },
+  { value: 'xlsx', label: 'Excel (.xlsx)', hint: 'Planilha real do Excel, nativa' },
+  { value: 'pptx', label: 'PowerPoint (.pptx)', hint: 'Apresentação real, nativa' },
+  { value: 'pdf', label: 'PDF', hint: 'Documento PDF real' },
   { value: 'md', label: 'Markdown', hint: 'Texto estruturado para documentação' },
   { value: 'html', label: 'HTML', hint: 'Página simples para abrir no navegador' },
-  { value: 'doc', label: 'Word compatível', hint: 'Abre no Word como documento editável' },
+  { value: 'doc', label: 'Word (HTML)', hint: 'Compatível com Word, mas não é .docx nativo' },
   { value: 'txt', label: 'TXT', hint: 'Texto simples' },
   { value: 'csv', label: 'CSV', hint: 'Tabela simples' },
   { value: 'json', label: 'JSON', hint: 'Dados estruturados' },
@@ -14,6 +18,22 @@ const formats: { value: DocumentFormat; label: string; hint: string }[] = [
 ];
 
 const templates: Record<DocumentFormat, { title: string; content: string }> = {
+  docx: {
+    title: 'Relatório executivo AURA ARGUS',
+    content: 'Este é um documento .docx real, gerado nativamente pelo Action Engine.\n\nPode ser aberto e editado diretamente no Microsoft Word, sem conversão.'
+  },
+  xlsx: {
+    title: 'Planilha AURA ARGUS',
+    content: 'Landing aprovada\nChat aprovado\nAI Router ativo\nMemory Engine validado\nAction Engine com documentos reais'
+  },
+  pptx: {
+    title: 'Apresentação AURA ARGUS',
+    content: 'Visão geral do projeto AURA/ARGUS.\n\nStatus atual: núcleo de inteligência, memória e ações já funcionando.\n\nPróxima etapa: documentos reais e integrações externas.'
+  },
+  pdf: {
+    title: 'Relatório em PDF AURA ARGUS',
+    content: 'Este é um PDF real, gerado nativamente pelo Action Engine, pronto para download e compartilhamento.'
+  },
   md: {
     title: 'Relatório de andamento AURA ARGUS',
     content: '## Objetivo\nRegistrar o andamento do projeto AURA/ARGUS.\n\n## Status\nInterface aprovada, AI Router ativo e memória por projeto em validação.\n\n## Próxima etapa\nAction Engine com geração de documentos e downloads.'
@@ -58,6 +78,12 @@ export default function ActionsPage() {
   const [result, setResult] = useState<ExecuteActionResult | null>(null);
   const [history, setHistory] = useState<ExecuteActionResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [linkTarget, setLinkTarget] = useState<'url' | 'whatsapp'>('url');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkPhone, setLinkPhone] = useState('');
+  const [linkMessage, setLinkMessage] = useState('');
+  const [linkResult, setLinkResult] = useState<ExecuteActionResult | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/actions/capabilities')
@@ -90,6 +116,26 @@ export default function ActionsPage() {
       if (data.ok) setHistory((current) => [data, ...current].slice(0, 6));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePrepareLink() {
+    setLinkLoading(true);
+    setLinkResult(null);
+    try {
+      const response = await fetch('/api/actions/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          linkTarget === 'whatsapp'
+            ? { action: 'link.prepare', linkTarget: 'whatsapp', phone: linkPhone, message: linkMessage }
+            : { action: 'link.prepare', linkTarget: 'url', url: linkUrl }
+        )
+      });
+      const data = (await response.json()) as ExecuteActionResult;
+      setLinkResult(data);
+    } finally {
+      setLinkLoading(false);
     }
   }
 
@@ -180,6 +226,80 @@ export default function ActionsPage() {
                 </div>
               )}
               {result.warnings?.map((warning) => <small key={warning}>{warning}</small>)}
+            </div>
+          )}
+        </article>
+
+        <article className="aios-panel aios-action-composer">
+          <div className="aios-action-title-row">
+            <div>
+              <p className="aios-kicker">LINK ENGINE</p>
+              <h2>Preparar link ou WhatsApp</h2>
+              <p className="aios-muted">Monta a URL ou a mensagem para você revisar e abrir manualmente. Nada é enviado automaticamente.</p>
+            </div>
+            <div className="aios-action-mini-status">v1 funcional</div>
+          </div>
+
+          <div className="aios-format-grid">
+            <button
+              type="button"
+              className={linkTarget === 'url' ? 'aios-format-card active' : 'aios-format-card'}
+              onClick={() => setLinkTarget('url')}
+            >
+              <strong>Abrir URL</strong>
+              <span>Site, rádio, GitHub etc.</span>
+            </button>
+            <button
+              type="button"
+              className={linkTarget === 'whatsapp' ? 'aios-format-card active' : 'aios-format-card'}
+              onClick={() => setLinkTarget('whatsapp')}
+            >
+              <strong>WhatsApp Web</strong>
+              <span>Mensagem preparada com confirmação</span>
+            </button>
+          </div>
+
+          {linkTarget === 'url' ? (
+            <label className="aios-form-control">
+              <span>URL completa</span>
+              <input className="aios-input" placeholder="https://exemplo.com" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} />
+            </label>
+          ) : (
+            <div className="aios-form-grid two">
+              <label className="aios-form-control">
+                <span>Número (com DDI+DDD)</span>
+                <input className="aios-input" placeholder="5571999999999" value={linkPhone} onChange={(event) => setLinkPhone(event.target.value)} />
+              </label>
+              <label className="aios-form-control">
+                <span>Mensagem</span>
+                <input className="aios-input" placeholder="Texto a ser preenchido" value={linkMessage} onChange={(event) => setLinkMessage(event.target.value)} />
+              </label>
+            </div>
+          )}
+
+          <div className="aios-action-bar">
+            <button className="aios-primary-button" onClick={handlePrepareLink} disabled={linkLoading}>
+              {linkLoading ? 'Preparando...' : 'Preparar link'}
+            </button>
+            {linkResult?.link && (
+              <a className="aios-secondary-button" href={linkResult.link.url} target="_blank" rel="noopener noreferrer">
+                Abrir agora
+              </a>
+            )}
+          </div>
+
+          {linkResult && (
+            <div className={linkResult.ok ? 'aios-action-result ok' : 'aios-action-result error'}>
+              <strong>{linkResult.ok ? 'Link pronto' : 'Erro na ação'}</strong>
+              <p>{linkResult.message}</p>
+              {linkResult.link && (
+                <div className="aios-artifact-card">
+                  <div>
+                    <b>{linkResult.link.requiresConfirmation ? 'Confirmação necessária' : 'Abertura direta'}</b>
+                    <span>{linkResult.link.url}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </article>
