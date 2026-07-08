@@ -524,7 +524,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   font-size: 16px;
 }
 .chat-composer-dock textarea:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--active-primary) 14%, transparent); border-color: var(--active-primary); }
-.chat-composer-dock button {
+.chat-composer-actions button {
   border: 1px solid color-mix(in srgb, var(--active-primary) 55%, transparent);
   border-radius: 22px;
   background: linear-gradient(135deg, var(--active-secondary), var(--active-primary));
@@ -539,7 +539,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .chat-mic-button.is-listening { animation: chatMicPulse 1.1s ease-in-out infinite; }
 @keyframes chatMicPulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--active-primary) 45%, transparent); } 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--active-primary) 0%, transparent); } }
 .chat-speak-button { border: none; background: none; color: var(--active-primary); font-size: 15px; cursor: pointer; padding: 2px 6px; }
-.chat-composer-dock button:disabled { opacity: .45; cursor: not-allowed; }
+.chat-composer-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .chat-composer-dock span { grid-column: 1 / -1; color: #8ea0b9; font-size: 12px; padding-left: 4px; }
 @keyframes chatAvatarBreathe { 0%,100%{ transform: translateY(0) scale(1); } 50%{ transform: translateY(-3px) scale(1.035); } }
 @keyframes chatAvatarPulse { 0%,100%{ transform: scale(.96); opacity: .62; } 50%{ transform: scale(1.04); opacity: 1; } }
@@ -873,7 +873,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   border-radius: 20px;
   field-sizing: content;
 }
-.chat-composer-dock button {
+.chat-composer-actions button {
   border-radius: 20px;
   font-size: 25px;
   width: 54px;
@@ -1092,7 +1092,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   line-height: 1.45 !important;
   overflow-y: auto !important;
 }
-.chat-composer-dock button {
+.chat-composer-actions button {
   min-height: 50px !important;
   border-radius: 18px !important;
   font-size: 22px !important;

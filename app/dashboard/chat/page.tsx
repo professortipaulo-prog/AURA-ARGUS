@@ -811,19 +811,7 @@ export default function ChatPage() {
                 ✦
               </button>
             </div>
-            <span>
-              Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}
-              {speechSupported && (
-                <button
-                  type="button"
-                  className="chat-speak-button"
-                  onClick={() => setAutoSpeak((current) => !current)}
-                  aria-label={autoSpeak ? 'Desligar áudio automático' : 'Ligar áudio automático'}
-                >
-                  {' '}• Áudio automático: {autoSpeak ? '🔊 ligado' : '🔇 desligado'}
-                </button>
-              )}
-            </span>
+            <span>Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}</span>
           </form>
         </div>
       </section>
