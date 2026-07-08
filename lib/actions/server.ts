@@ -109,7 +109,8 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
   const artifact = await createDocumentArtifact({
     title: request.title ?? 'Documento AURA ARGUS',
     content: request.content ?? '',
-    format: request.format ?? 'md'
+    format: request.format ?? 'md',
+    persona: request.persona
   });
 
   const runId = await persistRun({

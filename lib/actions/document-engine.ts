@@ -1,8 +1,24 @@
 import type { ActionArtifact, DocumentFormat } from './types';
-import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx';
+import { Document, Packer, Paragraph, HeadingLevel, TextRun, Header, ImageRun, HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, HorizontalPositionAlign, VerticalPositionAlign, TextWrappingType } from 'docx';
 import ExcelJS from 'exceljs';
 import PptxGenJS from 'pptxgenjs';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import fs from 'fs';
+import path from 'path';
+
+let cachedArgusBorder: Buffer | null = null;
+function getArgusBorderImage(): Buffer | null {
+  if (cachedArgusBorder) return cachedArgusBorder;
+  try {
+    const imagePath = path.join(process.cwd(), 'public', 'branding', 'argus-page-border.png');
+    cachedArgusBorder = fs.readFileSync(imagePath);
+    return cachedArgusBorder;
+  } catch {
+    // Sem imagem disponivel (ex: ambiente sem o arquivo) -> documento segue
+    // sem borda, sem quebrar a geracao.
+    return null;
+  }
+}
 
 const MIME: Record<DocumentFormat, string> = {
   md: 'text/markdown; charset=utf-8',
@@ -87,15 +103,50 @@ function toSvg(title: string, content: string): string {
 </svg>`;
 }
 
-async function toDocxBuffer(title: string, content: string): Promise<Buffer> {
+async function toDocxBuffer(title: string, content: string, persona?: 'aura' | 'argus'): Promise<Buffer> {
   const paragraphs = content
     .split(/\n{2,}/)
     .filter(Boolean)
     .map((block) => new Paragraph({ children: [new TextRun(block.replace(/\n/g, ' '))], spacing: { after: 200 } }));
 
+  // A4 em twips (unidade do Word): 11906 x 16838.
+  const pageWidthTwips = 11906;
+  const pageHeightTwips = 16838;
+
+  const borderImage = persona === 'argus' ? getArgusBorderImage() : null;
+
+  const header = borderImage
+    ? new Header({
+        children: [
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: borderImage,
+                type: 'png',
+                // Dimensoes em pixels equivalentes ao tamanho de uma pagina
+                // A4 a 96dpi, preservando a proporcao da imagem enviada
+                // (1055x1491 -> mesma razao de A4).
+                transformation: { width: 794, height: 1123 },
+                floating: {
+                  horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER },
+                  verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.TOP },
+                  behindDocument: true,
+                  wrap: { type: TextWrappingType.NONE }
+                }
+              })
+            ]
+          })
+        ]
+      })
+    : undefined;
+
   const doc = new Document({
     sections: [
       {
+        properties: {
+          page: { size: { width: pageWidthTwips, height: pageHeightTwips } }
+        },
+        headers: header ? { default: header } : undefined,
         children: [
           new Paragraph({ text: title, heading: HeadingLevel.HEADING_1 }),
           new Paragraph({ text: 'Gerado pelo AURA/ARGUS Action Engine', spacing: { after: 300 } }),
@@ -223,7 +274,7 @@ function renderDocument(format: DocumentFormat, title: string, content: string):
 
 const BINARY_FORMATS = new Set<DocumentFormat>(['docx', 'xlsx', 'pptx', 'pdf']);
 
-export async function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat }): Promise<ActionArtifact> {
+export async function createDocumentArtifact(params: { title: string; content: string; format?: DocumentFormat; persona?: 'aura' | 'argus' }): Promise<ActionArtifact> {
   const format = params.format ?? 'md';
   const title = params.title?.trim() || 'Documento AURA ARGUS';
   const content = params.content?.trim() || 'Conteudo inicial gerado pelo AURA/ARGUS.';
@@ -232,7 +283,7 @@ export async function createDocumentArtifact(params: { title: string; content: s
   if (BINARY_FORMATS.has(format)) {
     switch (format) {
       case 'docx':
-        buffer = await toDocxBuffer(title, content);
+        buffer = await toDocxBuffer(title, content, params.persona);
         break;
       case 'xlsx':
         buffer = await toXlsxBuffer(title, content);

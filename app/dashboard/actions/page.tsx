@@ -75,6 +75,7 @@ export default function ActionsPage() {
   const [title, setTitle] = useState(templates.md.title);
   const [content, setContent] = useState(templates.md.content);
   const [format, setFormat] = useState<DocumentFormat>('md');
+  const [documentPersona, setDocumentPersona] = useState<'aura' | 'argus'>('aura');
   const [result, setResult] = useState<ExecuteActionResult | null>(null);
   const [history, setHistory] = useState<ExecuteActionResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,7 +110,7 @@ export default function ActionsPage() {
       const response = await fetch('/api/actions/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'document.create', title, content, format })
+        body: JSON.stringify({ action: 'document.create', title, content, format, persona: documentPersona })
       });
       const data = (await response.json()) as ExecuteActionResult;
       setResult(data);
@@ -194,6 +195,13 @@ export default function ActionsPage() {
               <span>Formato selecionado</span>
               <select className="aios-input" value={format} onChange={(event) => selectFormat(event.target.value as DocumentFormat)}>
                 {formats.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="aios-form-control">
+              <span>Persona / marca do documento</span>
+              <select className="aios-input" value={documentPersona} onChange={(event) => setDocumentPersona(event.target.value as 'aura' | 'argus')}>
+                <option value="aura">AURA</option>
+                <option value="argus">ARGUS (com borda decorativa no Word)</option>
               </select>
             </label>
           </div>
