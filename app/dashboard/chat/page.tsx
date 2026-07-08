@@ -450,6 +450,12 @@ export default function ChatPage() {
       recognitionRef.current?.stop();
       setIsListening(false);
     }
+    if (next !== persona) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: PERSONAS[next].intro, persona: next, time: now(), meta: PERSONAS[next].meta }
+      ]);
+    }
     setPersona(next);
     setInput('');
   }
