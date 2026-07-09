@@ -1,6 +1,14 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
-const MATCH_THRESHOLD = 0.6; // mesmo limiar padrao recomendado pelo face-api.js
+// O limiar "oficial" recomendado pelo face-api.js e 0.6, mas dados reais
+// de uso (PATCH_103/104: 13 tentativas legitimas do dono da conta, todas
+// entre 0.76 e 0.80) mostraram que isso era severo demais entre sessoes
+// diferentes (iluminacao/camera/angulo variam). Como este e um atalho
+// OPCIONAL de conveniencia -- nunca a unica forma de entrar -- um limiar
+// mais tolerante e um trade-off aceitavel aqui (mais tolerante a variacao
+// da mesma pessoa, sem chegar perto da faixa tipica de pessoa diferente,
+// que costuma ficar acima de 1.0).
+const MATCH_THRESHOLD = 0.85;
 
 function euclideanDistance(a: number[], b: number[]): number {
   let sum = 0;
