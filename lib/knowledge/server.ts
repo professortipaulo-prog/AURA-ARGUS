@@ -17,11 +17,10 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   const lower = fileName.toLowerCase();
   try {
     if (mimeType.includes('pdf') || lower.endsWith('.pdf')) {
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
-      await parser.destroy();
-      return { text: result.text?.trim() || null, status: 'done', error: null };
+      const { extractText: extractPdfText, getDocumentProxy } = await import('unpdf');
+      const pdf = await getDocumentProxy(new Uint8Array(buffer));
+      const { text } = await extractPdfText(pdf, { mergePages: true });
+      return { text: text?.trim() || null, status: 'done', error: null };
     }
     if (mimeType.includes('wordprocessingml') || lower.endsWith('.docx')) {
       const mammoth = (await import('mammoth')).default;
