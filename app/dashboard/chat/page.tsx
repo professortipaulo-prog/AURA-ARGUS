@@ -369,6 +369,8 @@ export default function ChatPage() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
 
   const active = PERSONAS[persona];
   const activeProject = useMemo(() => projects.find((project) => project.id === projectId) ?? projects[0] ?? DEFAULT_PROJECT, [projectId, projects]);
@@ -441,6 +443,24 @@ export default function ChatPage() {
     speakMessage(lastMessage.content, lastIndex, lastMessage.persona ?? persona);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, autoSpeak, speechSupported]);
+
+  function requestLocation() {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('denied');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
+        setLocationStatus('granted');
+      },
+      () => {
+        setLocationStatus('denied');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
+    );
+  }
 
   function switchPersona(next: Persona) {
     window.speechSynthesis?.cancel();
@@ -634,7 +654,8 @@ export default function ChatPage() {
           persona: selectedPersona,
           systemPrompt: buildSystemPrompt(selectedPersona, selectedProject, promptMemories),
           sessionId,
-          projectId: selectedProject?.id ?? null
+          projectId: selectedProject?.id ?? null,
+          location: userLocation
         })
       });
 
@@ -803,6 +824,16 @@ export default function ChatPage() {
               }}
             />
             <div className="chat-composer-actions">
+              <button
+                type="button"
+                className="chat-location-button"
+                onClick={requestLocation}
+                disabled={locationStatus === 'loading'}
+                aria-label={userLocation ? 'Localização ativada' : 'Ativar localização (GPS do navegador)'}
+                title={userLocation ? 'Localização ativada — clique para atualizar' : 'Ativar localização para respostas sobre clima/horário local'}
+              >
+                {locationStatus === 'loading' ? '⏳' : userLocation ? '📍' : '📍'}
+              </button>
               {speechSupported && (
                 <button
                   type="button"
@@ -817,7 +848,11 @@ export default function ChatPage() {
                 ✦
               </button>
             </div>
-            <span>Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}</span>
+            <span>
+              Enter envia • Shift + Enter quebra linha • Persona ativa: {active.label}
+              {' · '}
+              {locationStatus === 'granted' && userLocation ? 'Localização ativada 📍' : locationStatus === 'denied' ? 'Localização não autorizada pelo navegador' : 'Localização desativada — clique em 📍 para ativar'}
+            </span>
           </form>
         </div>
       </section>

@@ -11,6 +11,7 @@ export interface ChatRequestBody {
   persona?: AIPersonaId;
   sessionId?: string | null;
   projectId?: string | null;
+  location?: { lat: number; lon: number } | null;
 }
 
 export interface ChatResponseBody {
