@@ -198,6 +198,11 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .aios-login-card input:focus { border-color: var(--active-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--active-primary) 14%, transparent); }
 .aios-login-card button { min-height: 56px; border: 0; border-radius: 18px; background: linear-gradient(135deg, var(--active-secondary), var(--active-primary)); color: #fff; font-weight: 900; cursor: pointer; box-shadow: 0 16px 42px color-mix(in srgb, var(--active-primary) 18%, transparent); }
 .aios-login-error { border: 1px solid rgba(251, 113, 133, .36); border-radius: 18px; background: rgba(251, 113, 133, .10); color: #fecdd3; padding: 14px; }
+.aios-login-face-toggle { width: 100%; margin-top: 14px; background: none; border: 1px dashed rgba(148,163,184,.35); border-radius: 14px; color: #94a3b8; padding: 12px; font-size: 13px; cursor: pointer; }
+.aios-login-face-panel { margin-top: 16px; display: grid; gap: 12px; padding: 16px; border-radius: 18px; border: 1px solid rgba(148,163,184,.2); background: rgba(15,23,42,.5); }
+.aios-login-face-hint { color: #94a3b8; font-size: 12px; margin: 0; }
+.aios-login-face-panel input { width: 100%; }
+.aios-login-face-cancel { background: none !important; border: 1px solid rgba(148,163,184,.3) !important; color: #94a3b8 !important; }
 .aios-login-footer { margin: 20px 0 0; text-align: center; color: var(--muted); }
 .aios-login-footer a { color: var(--active-primary); font-weight: 800; }
 

@@ -77,3 +77,15 @@ export async function deleteFaceEnrollment(userId: string): Promise<{ ok: boolea
   if (error) return { ok: false, error: error.message };
   return { ok: true, error: null };
 }
+
+export async function findUserIdByEmail(email: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .schema('core')
+    .from('profiles')
+    .select('id')
+    .eq('email', email.trim().toLowerCase())
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
