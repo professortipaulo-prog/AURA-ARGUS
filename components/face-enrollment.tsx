@@ -41,16 +41,23 @@ export function FaceEnrollmentPanel() {
 
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      // Importante: o elemento <video> só é montado na tela quando o
+      // status vira 'camera-on' (renderização condicional). Por isso,
+      // conectamos o stream a ele depois, no useEffect abaixo -- que só
+      // roda depois que o React garante que o elemento já existe no DOM.
       setStatus('camera-on');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nao foi possivel acessar a camera. Verifique a permissao no navegador.');
       setStatus('error');
     }
   }
+
+  useEffect(() => {
+    if (status === 'camera-on' && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => undefined);
+    }
+  }, [status]);
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
