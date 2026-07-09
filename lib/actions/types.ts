@@ -32,6 +32,7 @@ export type ExecuteActionRequest = {
   phone?: string;
   message?: string;
   borderVariant?: 1 | 2;
+  source?: 'actions' | 'chat';
   useAI?: boolean;
 };
 
@@ -57,6 +58,7 @@ export type ExecuteActionResult = {
   status: ActionStatus;
   runId?: string;
   artifact?: ActionArtifact;
+  artifactId?: string;
   link?: PreparedLink;
   message: string;
   warnings?: string[];
