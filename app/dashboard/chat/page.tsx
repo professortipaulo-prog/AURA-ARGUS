@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from '@/components/layout/header';
 import { LivingBackground } from '@/components/living-background';
-import { FaceGuard } from '@/components/face-guard';
 import { classifyExpression } from '@/lib/avatar/expression';
 
 type Persona = 'aura' | 'argus';
@@ -734,7 +733,7 @@ export default function ChatPage() {
   }
 
   return (
-    <FaceGuard>
+    <>
       <LivingBackground persona={persona} />
       <Header title="Chat IA" subtitle="Online" />
       <section className={`chat-os ${persona}`}>
@@ -898,6 +897,6 @@ export default function ChatPage() {
           </form>
         </div>
       </section>
-    </FaceGuard>
+    </>
   );
 }
