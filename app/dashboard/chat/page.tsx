@@ -320,7 +320,7 @@ function AvatarDockCard({
 }: {
   persona: Persona;
   active: boolean;
-  voiceState: 'idle' | 'listening' | 'speaking';
+  voiceState: 'idle' | 'listening' | 'thinking' | 'speaking';
   onClick: () => void;
 }) {
   const item = PERSONAS[persona];
@@ -332,17 +332,27 @@ function AvatarDockCard({
     >
       <span className="chat-avatar-photo">
         <Image src={item.image} alt={`Avatar ${item.label}`} fill sizes="160px" className="object-cover" priority={persona === 'aura'} />
+        <span className="chat-avatar-eye eye-left" aria-hidden="true" />
+        <span className="chat-avatar-eye eye-right" aria-hidden="true" />
+        <span className="chat-avatar-mouth" aria-hidden="true" />
         {voiceState === 'speaking' && (
           <span className="chat-avatar-voice-rings" aria-hidden="true">
             <i /><i /><i />
           </span>
         )}
         {voiceState === 'listening' && <span className="chat-avatar-listening-dot" aria-hidden="true" />}
+        {voiceState === 'thinking' && (
+          <span className="chat-avatar-thinking-dots" aria-hidden="true">
+            <i /><i /><i />
+          </span>
+        )}
       </span>
       <span className="chat-avatar-info">
         <strong>{item.label}</strong>
         <small>{item.title}</small>
-        <em>{voiceState === 'speaking' ? 'Falando' : voiceState === 'listening' ? 'Ouvindo' : active ? 'Ativo' : 'Em espera'}</em>
+        <em>
+          {voiceState === 'speaking' ? 'Falando' : voiceState === 'thinking' ? 'Pensando' : voiceState === 'listening' ? 'Ouvindo' : active ? 'Ativo' : 'Em espera'}
+        </em>
       </span>
     </button>
   );
@@ -708,9 +718,11 @@ export default function ChatPage() {
               voiceState={
                 speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'aura'
                   ? 'speaking'
-                  : isListening && persona === 'aura'
-                    ? 'listening'
-                    : 'idle'
+                  : isSending && persona === 'aura'
+                    ? 'thinking'
+                    : isListening && persona === 'aura'
+                      ? 'listening'
+                      : 'idle'
               }
               onClick={() => switchPersona('aura')}
             />
@@ -720,9 +732,11 @@ export default function ChatPage() {
               voiceState={
                 speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'argus'
                   ? 'speaking'
-                  : isListening && persona === 'argus'
-                    ? 'listening'
-                    : 'idle'
+                  : isSending && persona === 'argus'
+                    ? 'thinking'
+                    : isListening && persona === 'argus'
+                      ? 'listening'
+                      : 'idle'
               }
               onClick={() => switchPersona('argus')}
             />
