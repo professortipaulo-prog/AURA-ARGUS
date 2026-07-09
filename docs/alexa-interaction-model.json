@@ -1,0 +1,63 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "aura argus",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AskAuraIntent",
+          "slots": [
+            {
+              "name": "query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "pergunte à aura sobre {query}",
+            "pergunta pra aura {query}",
+            "aura {query}",
+            "pergunte à aura {query}",
+            "quero perguntar à aura sobre {query}",
+            "aura me diga {query}"
+          ]
+        },
+        {
+          "name": "AskArgusIntent",
+          "slots": [
+            {
+              "name": "query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "pergunte ao argus sobre {query}",
+            "pergunta pro argus {query}",
+            "argus {query}",
+            "pergunte ao argus {query}",
+            "quero perguntar ao argus sobre {query}",
+            "argus me diga {query}"
+          ]
+        }
+      ]
+    }
+  }
+}

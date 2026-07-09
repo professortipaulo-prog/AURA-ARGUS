@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { buildIdentityEngine } from './identity-engine';
 import type { IdentityProfile } from './types';
 
@@ -43,6 +44,21 @@ export async function getCurrentUserIdentity(): Promise<{
   identity.updatedAt = row?.updated_at;
 
   return { user, identity, error: null };
+}
+
+export async function getIdentityForUserId(userId: string, email: string): Promise<{ identity: IdentityProfile | null; error: string | null }> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc('get_user_profile_intelligence', { p_user_id: userId });
+
+  if (error) {
+    return { identity: buildIdentityEngine(email, null, userId), error: error.message };
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as StoredIdentityRow | null;
+  const identity = buildIdentityEngine(email, normalizeProfileData(row), userId);
+  identity.updatedAt = row?.updated_at;
+
+  return { identity, error: null };
 }
 
 export async function upsertIdentitySnapshot(userId: string, identity: IdentityProfile) {
