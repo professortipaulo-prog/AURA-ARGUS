@@ -13,6 +13,7 @@ type ChatMessage = {
   persona?: Persona;
   meta?: string;
   time?: string;
+  document?: { fileName: string; mimeType: string; dataUrl: string };
 };
 
 type ProjectSummary = {
@@ -714,6 +715,7 @@ export default function ChatPage() {
           role: 'assistant',
           content: data.response,
           persona: selectedPersona,
+          document: data.document ?? undefined,
           meta: (() => {
             const projectName = data.project?.name ?? selectedProject?.name;
             const isGenericDefault = !projectName || projectName === 'AURA/ARGUS AI Operating System';
@@ -800,6 +802,15 @@ export default function ChatPage() {
                     <span>{p.title}</span>
                   </header>
                   <p>{msg.content}</p>
+                  {msg.document && (
+                    <a
+                      href={msg.document.dataUrl}
+                      download={msg.document.fileName}
+                      className="chat-document-download"
+                    >
+                      📄 Baixar {msg.document.fileName}
+                    </a>
+                  )}
                   <footer>
                     {msg.meta ? <small>{msg.meta}</small> : <small>{p.meta}</small>}
                     {msg.time ? <time>{msg.time}</time> : null}

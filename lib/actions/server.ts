@@ -132,7 +132,7 @@ export async function executeAction(request: ExecuteActionRequest): Promise<Exec
         memoryPrompt: knowledgeContext ? `${memoryPrompt}\n\n${knowledgeContext}` : memoryPrompt
       });
 
-      const brief = `Elabore o CONTEUDO COMPLETO de um documento no formato "${request.format ?? 'md'}", com o titulo "${request.title ?? 'Documento AURA ARGUS'}".\n\nSolicitacao do usuario: "${requestedContent}"\n\nDesenvolva um texto completo, bem estruturado, em portugues do Brasil, usando o que voce sabe sobre o usuario (perfil e memoria) quando for relevante. Responda APENAS com o conteudo final do documento — sem saudacoes, sem comentarios sobre a tarefa, sem introducoes tipo "aqui esta o documento".`;
+      const brief = `Elabore o CONTEUDO COMPLETO de um documento no formato "${request.format ?? 'md'}", com o titulo "${request.title ?? 'Documento AURA ARGUS'}".\n\nSolicitacao do usuario: "${requestedContent}"\n\nDesenvolva um texto completo, bem estruturado, em portugues do Brasil. Use o que voce sabe sobre o usuario (perfil, memoria e base de conhecimento) quando for relevante. IMPORTANTE: se o assunto pedido exigir informacao factual, tecnica ou atual que voce nao tenha certeza — e que nao esteja coberta pela memoria ou pela base de conhecimento do usuario — use a ferramenta de busca na web disponivel para pesquisar antes de escrever, em vez de responder de forma genérica ou incompleta. Responda APENAS com o conteudo final do documento — sem saudacoes, sem comentarios sobre a tarefa, sem introducoes tipo "aqui esta o documento".`;
 
       const result = await sendChat({ message: brief, persona, systemPrompt });
       if (result.response?.trim()) {

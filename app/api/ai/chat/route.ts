@@ -5,6 +5,8 @@ import { buildMemoryPrompt, getMemoryContext, getOrCreateActiveProject, saveChat
 import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
 import { getKnowledgeContext } from '@/lib/knowledge/server';
 import { resolveLocationLabel } from '@/lib/location/server';
+import { detectDocumentIntent } from '@/lib/actions/chat-document-intent';
+import { executeAction } from '@/lib/actions/server';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
 function friendlyAIError(error: unknown) {
@@ -44,6 +46,42 @@ export async function POST(request: Request) {
   }
 
   const persona = normalizePersona(body.persona);
+
+  const documentIntent = detectDocumentIntent(body.message);
+  if (documentIntent) {
+    try {
+      const actionResult = await executeAction({
+        action: 'document.create',
+        title: documentIntent.title,
+        content: documentIntent.topic,
+        format: documentIntent.format,
+        persona,
+        useAI: true
+      });
+
+      if (actionResult.ok && actionResult.artifact) {
+        return NextResponse.json({
+          response: `Documento pronto: "${actionResult.artifact.fileName}". Você pode baixar abaixo.`,
+          provider: persona === 'argus' ? 'gemini' : 'anthropic',
+          model: 'document-engine',
+          persona: persona === 'argus' ? 'ARGUS' : 'AURA',
+          document: {
+            fileName: actionResult.artifact.fileName,
+            mimeType: actionResult.artifact.mimeType,
+            dataUrl: actionResult.artifact.dataUrl
+          },
+          memorySaved: false,
+          memoryRecorded: false,
+          memoryError: null
+        });
+      }
+      // Se a geracao do documento falhar, cai para o fluxo normal de chat
+      // abaixo, respondendo em texto em vez de travar a conversa.
+    } catch {
+      // Mesma logica: erro na geracao do documento nao deve impedir uma
+      // resposta de chat normal.
+    }
+  }
 
   try {
     const { user, identity } = await getCurrentUserIdentity();
