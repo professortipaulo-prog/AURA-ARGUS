@@ -1307,6 +1307,27 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .aios-action-result { margin-top: 12px; border-radius: 18px; padding: 16px; border: 1px solid rgba(148,163,184,.18); background: rgba(15,23,42,.72); }
 .aios-face-camera { margin-top: 12px; }
 .aios-face-video { width: 100%; max-width: 420px; aspect-ratio: 4/3; object-fit: cover; border-radius: 18px; border: 1px solid rgba(148,163,184,.28); background: #05070c; display: block; }
+.aios-face-video-wrap { position: relative; width: 100%; max-width: 420px; }
+.aios-face-video-wrap .aios-face-video { max-width: none; }
+.aios-face-oval-guide {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 34% 46% at 50% 46%, transparent 98%, rgba(3,5,10,.72) 100%);
+}
+.aios-face-oval-guide::after {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 26%;
+  right: 26%;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--active-primary) 75%, white 10%);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--active-primary) 35%, transparent);
+}
 .aios-face-challenge-overlay {
   position: fixed;
   inset: 0;

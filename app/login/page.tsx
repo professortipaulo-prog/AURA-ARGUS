@@ -162,7 +162,11 @@ export default function LoginPage() {
 
             {(faceStatus === 'camera-on' || faceStatus === 'verifying') && (
               <>
-                <video ref={videoRef} muted playsInline className="aios-face-video" />
+                <p className="aios-login-face-hint">Posicione seu rosto dentro da área oval.</p>
+                <div className="aios-face-video-wrap">
+                  <video ref={videoRef} muted playsInline className="aios-face-video" />
+                  <div className="aios-face-oval-guide" aria-hidden="true" />
+                </div>
                 <button type="button" onClick={captureAndVerify} disabled={faceStatus === 'verifying'}>
                   {faceStatus === 'verifying' ? 'Verificando...' : 'Verificar rosto e entrar'}
                 </button>

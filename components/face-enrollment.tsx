@@ -171,7 +171,11 @@ export function FaceEnrollmentPanel() {
 
       {(status === 'camera-on' || status === 'capturing' || status === 'saving') && (
         <div className="aios-face-camera">
-          <video ref={videoRef} muted playsInline className="aios-face-video" />
+          <p className="aios-muted" style={{ marginBottom: 8 }}>Posicione seu rosto dentro da área oval.</p>
+          <div className="aios-face-video-wrap">
+            <video ref={videoRef} muted playsInline className="aios-face-video" />
+            <div className="aios-face-oval-guide" aria-hidden="true" />
+          </div>
           <div className="aios-action-bar">
             <button className="aios-primary-button" onClick={capture} disabled={status !== 'camera-on'}>
               {status === 'capturing' ? 'Detectando rosto...' : status === 'saving' ? 'Salvando...' : 'Capturar rosto'}
