@@ -165,6 +165,6 @@ export async function getKnowledgeContext(userId: string, query: string, limit =
   const top = relevant.slice(0, limit);
   if (top.length === 0) return null;
 
-  const blocks = top.map((item) => `--- ${item.fileName} ---\n${item.text.slice(0, 3000)}`);
+  const blocks = top.map((item) => `--- ${item.fileName} ---\n${item.text.slice(0, 20000)}`);
   return `BASE DE CONHECIMENTO DO USUARIO (arquivos enviados por ele para consulta):\n\n${blocks.join('\n\n')}\n\nUse essas informacoes quando forem relevantes para a solicitacao atual. Nao invente informacoes que nao estejam nesses arquivos.`;
 }
