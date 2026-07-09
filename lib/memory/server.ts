@@ -666,7 +666,7 @@ export function buildTemporalContext(date = new Date()): TemporalContext {
 }
 
 export function temporalPromptBlock(context = buildTemporalContext()) {
-  return ['CONTEXTO TEMPORAL OBRIGATÓRIO:', `Data atual: ${context.datePtBr}.`, `Hora atual: ${context.timePtBr}.`, `Timezone oficial do sistema: ${context.timezone}.`, `Agora em ISO: ${context.nowIso}.`, `Tempo aproximado até terminar o dia: ${context.hoursUntilEndOfDay} horas (${context.minutesUntilEndOfDay} minutos).`, 'Use estes dados como verdade. Não invente datas antigas e não use data de treinamento do modelo.'].join('\n');
+  return ['CONTEXTO TEMPORAL OBRIGATÓRIO:', `Data atual: ${context.datePtBr}.`, `Hora atual: ${context.timePtBr}.`, `Timezone de referência do servidor: ${context.timezone}.`, `Agora em ISO: ${context.nowIso}.`, `Tempo aproximado até terminar o dia: ${context.hoursUntilEndOfDay} horas (${context.minutesUntilEndOfDay} minutos).`, 'Use a data/hora acima como verdade (não invente datas antigas nem use a data de treinamento do modelo).', 'IMPORTANTE SOBRE LOCALIZAÇÃO: o timezone acima é só a referência de relógio do servidor, NÃO é necessariamente onde o usuário está fisicamente agora. Nunca assuma cidade, clima ou horário local do usuário a partir desse timezone. Se o usuário informar sua localização atual na própria mensagem (ex: "estou em Brasília agora"), use exatamente essa localização informada para responder sobre clima, horário local ou qualquer coisa dependente de onde ele está — isso tem prioridade sobre qualquer suposição.'].join('\n');
 }
 
 export async function getOrCreateActiveProject(userId: string, organizationId?: string | null) {
