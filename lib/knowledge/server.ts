@@ -166,5 +166,5 @@ export async function getKnowledgeContext(userId: string, query: string, limit =
   if (top.length === 0) return null;
 
   const blocks = top.map((item) => `--- ${item.fileName} ---\n${item.text.slice(0, 20000)}`);
-  return `BASE DE CONHECIMENTO DO USUARIO (arquivos enviados por ele para consulta):\n\n${blocks.join('\n\n')}\n\nUse essas informacoes quando forem relevantes para a solicitacao atual. Nao invente informacoes que nao estejam nesses arquivos.`;
+  return `BASE DE CONHECIMENTO DO USUARIO (arquivos enviados por ele para consulta):\n\n${blocks.join('\n\n')}\n\nIMPORTANTE: estes arquivos sao a fonte PRIORITARIA sobre o usuario e seus assuntos -- sempre verifique e use essas informacoes primeiro quando forem relevantes para a solicitacao atual, antes de recorrer a conhecimento geral ou busca na web. Nao invente informacoes que nao estejam nesses arquivos. Quando complementar com informacao da internet (busca na web), sempre inclua a fonte/referencia (nome do site ou link) junto da informacao, para que o usuario saiba de onde veio.`;
 }
