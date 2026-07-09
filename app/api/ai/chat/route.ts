@@ -6,6 +6,13 @@ import { buildPersonaSystemPrompt } from '@/lib/identity/prompt-builder';
 import { getKnowledgeContext } from '@/lib/knowledge/server';
 import { resolveLocationLabel } from '@/lib/location/server';
 import { detectDocumentIntent } from '@/lib/actions/chat-document-intent';
+import {
+  BORDER_NAMES,
+  detectBorderChoiceInMessage,
+  savePendingDocumentRequest,
+  getPendingDocumentRequest,
+  clearPendingDocumentRequest
+} from '@/lib/actions/chat-border-choice';
 import { executeAction } from '@/lib/actions/server';
 import { ProviderNotConfiguredError, type AIPersonaId, type AIProviderId, type ChatRequestBody } from '@/lib/ai/types';
 
@@ -46,45 +53,151 @@ export async function POST(request: Request) {
   }
 
   const persona = normalizePersona(body.persona);
+  const { user, identity } = await getCurrentUserIdentity();
 
+  // 1) Se ha um pedido de documento pendente (aguardando escolha de borda)
+  // para esta persona, e a mensagem atual parece ser essa escolha, gera
+  // o documento agora com a borda escolhida.
+  if (user?.id) {
+    const pending = await getPendingDocumentRequest(user.id, persona);
+    if (pending) {
+      const chosenVariant = detectBorderChoiceInMessage(body.message, persona);
+      if (chosenVariant) {
+        try {
+          const actionResult = await executeAction({
+            action: 'document.create',
+            title: pending.title,
+            content: pending.topic,
+            format: pending.format as any,
+            persona,
+            useAI: true,
+            source: 'chat',
+            borderVariant: chosenVariant
+          });
+          await clearPendingDocumentRequest(user.id, persona);
+
+          if (actionResult.ok && actionResult.artifact) {
+            return NextResponse.json({
+              response: `Documento pronto com a borda "${BORDER_NAMES[persona][chosenVariant]}": "${actionResult.artifact.fileName}". Você pode baixar abaixo.`,
+              provider: persona === 'argus' ? 'gemini' : 'anthropic',
+              model: 'document-engine',
+              persona: persona === 'argus' ? 'ARGUS' : 'AURA',
+              document: {
+                fileName: actionResult.artifact.fileName,
+                mimeType: actionResult.artifact.mimeType,
+                dataUrl: actionResult.artifact.dataUrl
+              },
+              memorySaved: false,
+              memoryRecorded: false,
+              memoryError: null
+            });
+          }
+        } catch {
+          await clearPendingDocumentRequest(user.id, persona).catch(() => undefined);
+        }
+      }
+    }
+  }
+
+  // 2) Deteccao normal de pedido de documento novo.
   const documentIntent = detectDocumentIntent(body.message);
   if (documentIntent) {
-    try {
-      const actionResult = await executeAction({
-        action: 'document.create',
-        title: documentIntent.title,
-        content: documentIntent.topic,
-        format: documentIntent.format,
-        persona,
-        useAI: true
-      });
+    // Word/.docx tem 2 modelos de borda por persona -- pergunta antes de
+    // criar, a menos que o usuario ja tenha dito qual quer na propria
+    // mensagem (ex: "crie um documento sobre X com a borda floral").
+    if (documentIntent.format === 'docx') {
+      const specifiedVariant = detectBorderChoiceInMessage(body.message, persona);
 
-      if (actionResult.ok && actionResult.artifact) {
+      if (!specifiedVariant) {
+        if (user?.id) {
+          await savePendingDocumentRequest({
+            userId: user.id,
+            persona,
+            title: documentIntent.title,
+            topic: documentIntent.topic,
+            format: documentIntent.format
+          });
+        }
+
+        const options = BORDER_NAMES[persona];
         return NextResponse.json({
-          response: `Documento pronto: "${actionResult.artifact.fileName}". Você pode baixar abaixo.`,
+          response: `Antes de gerar o documento sobre "${documentIntent.topic}", qual borda você quer usar? 1) ${options[1]} ou 2) ${options[2]}? É só responder com o nome ou o número.`,
           provider: persona === 'argus' ? 'gemini' : 'anthropic',
           model: 'document-engine',
           persona: persona === 'argus' ? 'ARGUS' : 'AURA',
-          document: {
-            fileName: actionResult.artifact.fileName,
-            mimeType: actionResult.artifact.mimeType,
-            dataUrl: actionResult.artifact.dataUrl
-          },
           memorySaved: false,
           memoryRecorded: false,
           memoryError: null
         });
       }
-      // Se a geracao do documento falhar, cai para o fluxo normal de chat
-      // abaixo, respondendo em texto em vez de travar a conversa.
-    } catch {
-      // Mesma logica: erro na geracao do documento nao deve impedir uma
-      // resposta de chat normal.
+
+      try {
+        const actionResult = await executeAction({
+          action: 'document.create',
+          title: documentIntent.title,
+          content: documentIntent.topic,
+          format: documentIntent.format,
+          persona,
+          useAI: true,
+          source: 'chat',
+          borderVariant: specifiedVariant
+        });
+
+        if (actionResult.ok && actionResult.artifact) {
+          return NextResponse.json({
+            response: `Documento pronto com a borda "${BORDER_NAMES[persona][specifiedVariant]}": "${actionResult.artifact.fileName}". Você pode baixar abaixo.`,
+            provider: persona === 'argus' ? 'gemini' : 'anthropic',
+            model: 'document-engine',
+            persona: persona === 'argus' ? 'ARGUS' : 'AURA',
+            document: {
+              fileName: actionResult.artifact.fileName,
+              mimeType: actionResult.artifact.mimeType,
+              dataUrl: actionResult.artifact.dataUrl
+            },
+            memorySaved: false,
+            memoryRecorded: false,
+            memoryError: null
+          });
+        }
+      } catch {
+        // Cai para o fluxo normal de chat abaixo.
+      }
+    } else {
+      // Outros formatos (xlsx/pptx/pdf) nao tem borda -- gera direto, como antes.
+      try {
+        const actionResult = await executeAction({
+          action: 'document.create',
+          title: documentIntent.title,
+          content: documentIntent.topic,
+          format: documentIntent.format,
+          persona,
+          useAI: true,
+          source: 'chat'
+        });
+
+        if (actionResult.ok && actionResult.artifact) {
+          return NextResponse.json({
+            response: `Documento pronto: "${actionResult.artifact.fileName}". Você pode baixar abaixo.`,
+            provider: persona === 'argus' ? 'gemini' : 'anthropic',
+            model: 'document-engine',
+            persona: persona === 'argus' ? 'ARGUS' : 'AURA',
+            document: {
+              fileName: actionResult.artifact.fileName,
+              mimeType: actionResult.artifact.mimeType,
+              dataUrl: actionResult.artifact.dataUrl
+            },
+            memorySaved: false,
+            memoryRecorded: false,
+            memoryError: null
+          });
+        }
+      } catch {
+        // Cai para o fluxo normal de chat abaixo.
+      }
     }
   }
 
   try {
-    const { user, identity } = await getCurrentUserIdentity();
     const requestedProjectId = typeof body.projectId === 'string' && body.projectId.trim() ? body.projectId.trim() : null;
 
     const emptyMemoryContext = { project: null, projectMemories: [], importantMemories: [], relevantMemories: [], recentSessions: [] };
