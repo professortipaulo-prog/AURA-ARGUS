@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from '@/components/layout/header';
 import { LivingBackground } from '@/components/living-background';
 import { FaceGuard } from '@/components/face-guard';
+import { classifyExpression } from '@/lib/avatar/expression';
 
 type Persona = 'aura' | 'argus';
 type ChatMessage = {
@@ -36,6 +37,12 @@ const PERSONAS = {
     label: 'AURA',
     title: 'Assistente Estratégica',
     image: '/avatars/aura.webp',
+    videos: {
+      talking: undefined as string | undefined,
+      smiling: undefined as string | undefined,
+      serious: undefined as string | undefined,
+      idle: undefined as string | undefined
+    },
     placeholder: 'Digite sua mensagem para AURA...',
     intro: 'AURA online. Pronta para compreender, organizar e orientar.',
     thinking: 'AURA está organizando a resposta...',
@@ -47,6 +54,12 @@ const PERSONAS = {
     label: 'ARGUS',
     title: 'Assistente Operacional',
     image: '/avatars/argus.webp',
+    videos: {
+      talking: undefined as string | undefined,
+      smiling: undefined as string | undefined,
+      serious: undefined as string | undefined,
+      idle: undefined as string | undefined
+    },
     placeholder: 'Digite sua solicitação para ARGUS...',
     intro: 'ARGUS online. Pronto para analisar, supervisionar e executar.',
     thinking: 'ARGUS está analisando a execução...',
@@ -321,10 +334,13 @@ function AvatarDockCard({
 }: {
   persona: Persona;
   active: boolean;
-  voiceState: 'idle' | 'listening' | 'thinking' | 'speaking';
+  voiceState: 'idle' | 'listening' | 'thinking' | 'talking' | 'smiling' | 'serious';
   onClick: () => void;
 }) {
   const item = PERSONAS[persona];
+  const isExpressionState = voiceState === 'talking' || voiceState === 'smiling' || voiceState === 'serious' || voiceState === 'idle';
+  const videoSrc = isExpressionState ? item.videos?.[voiceState] : undefined;
+
   return (
     <button
       type="button"
@@ -332,11 +348,17 @@ function AvatarDockCard({
       className={`chat-avatar-card ${persona} ${active ? 'is-active' : 'is-muted'} voice-${voiceState}`}
     >
       <span className="chat-avatar-photo">
-        <Image src={item.image} alt={`Avatar ${item.label}`} fill sizes="160px" className="object-cover" priority={persona === 'aura'} />
-        <span className="chat-avatar-eye eye-left" aria-hidden="true" />
-        <span className="chat-avatar-eye eye-right" aria-hidden="true" />
-        <span className="chat-avatar-mouth" aria-hidden="true" />
-        {voiceState === 'speaking' && (
+        {videoSrc ? (
+          <video src={videoSrc} className="chat-avatar-video" autoPlay loop muted playsInline aria-label={`Avatar animado de ${item.label}`} />
+        ) : (
+          <>
+            <Image src={item.image} alt={`Avatar ${item.label}`} fill sizes="160px" className="object-cover" priority={persona === 'aura'} />
+            <span className="chat-avatar-eye eye-left" aria-hidden="true" />
+            <span className="chat-avatar-eye eye-right" aria-hidden="true" />
+            <span className="chat-avatar-mouth" aria-hidden="true" />
+          </>
+        )}
+        {(voiceState === 'talking' || voiceState === 'smiling' || voiceState === 'serious') && (
           <span className="chat-avatar-voice-rings" aria-hidden="true">
             <i /><i /><i />
           </span>
@@ -352,8 +374,9 @@ function AvatarDockCard({
         <strong>{item.label}</strong>
         <small>{item.title}</small>
         <em>
-          {voiceState === 'speaking' ? 'Falando' : voiceState === 'thinking' ? 'Pensando' : voiceState === 'listening' ? 'Ouvindo' : active ? 'Ativo' : 'Em espera'}
+          {voiceState === 'talking' ? 'Falando' : voiceState === 'smiling' ? 'Concluído' : voiceState === 'serious' ? 'Analisando' : voiceState === 'thinking' ? 'Pensando' : voiceState === 'listening' ? 'Ouvindo' : active ? 'Ativo' : 'Em espera'}
         </em>
+
       </span>
     </button>
   );
@@ -722,7 +745,7 @@ export default function ChatPage() {
               active={persona === 'aura'}
               voiceState={
                 speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'aura'
-                  ? 'speaking'
+                  ? classifyExpression(messages[speakingIndex]?.content ?? '')
                   : isSending && persona === 'aura'
                     ? 'thinking'
                     : isListening && persona === 'aura'
@@ -736,7 +759,7 @@ export default function ChatPage() {
               active={persona === 'argus'}
               voiceState={
                 speakingIndex !== null && (messages[speakingIndex]?.persona ?? persona) === 'argus'
-                  ? 'speaking'
+                  ? classifyExpression(messages[speakingIndex]?.content ?? '')
                   : isSending && persona === 'argus'
                     ? 'thinking'
                     : isListening && persona === 'argus'
