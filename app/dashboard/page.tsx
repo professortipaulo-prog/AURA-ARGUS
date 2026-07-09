@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
-import { AvatarPanel } from '@/components/avatar-panel';
+import { DashboardAvatarSwitcher } from '@/components/dashboard-avatar-switcher';
 
 const metrics = [
   ['Status', 'Live', 'Sistema online'],
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         </div>
 
         <aside className="aios-right-column">
-          <AvatarPanel persona="aura" state="idle" large />
+          <DashboardAvatarSwitcher />
           <article className="aios-panel context-panel">
             <h2>Contexto ativo</h2>
             <p><span>Projeto atual</span>AURA/ARGUS</p>
