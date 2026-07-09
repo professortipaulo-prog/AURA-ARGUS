@@ -647,7 +647,7 @@ export default function ChatPage() {
           role: 'assistant',
           content: localAnswer,
           persona: selectedPersona,
-          meta: `${selectedMeta.label} · memória local · AURA/ARGUS AI Operating System`,
+          meta: `${selectedMeta.label} · memória local`,
           time: now()
         }
       ]);
@@ -691,7 +691,11 @@ export default function ChatPage() {
           role: 'assistant',
           content: data.response,
           persona: selectedPersona,
-          meta: `${selectedMeta.label} · ${data.provider ?? 'router'} · ${data.model ?? 'modelo automático'}${data.project?.name ? ` · ${data.project.name}` : selectedProject?.name ? ` · ${selectedProject.name}` : ''}${data.fallbackUsed ? ' · fallback' : ''}`,
+          meta: (() => {
+            const projectName = data.project?.name ?? selectedProject?.name;
+            const isGenericDefault = !projectName || projectName === 'AURA/ARGUS AI Operating System';
+            return isGenericDefault ? selectedMeta.label : `${selectedMeta.label} · ${projectName}`;
+          })(),
           time: now()
         }
       ]);
