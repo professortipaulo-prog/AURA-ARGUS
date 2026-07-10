@@ -671,17 +671,15 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #4fd1ff 45%, transparent);
-  background: linear-gradient(135deg, rgba(79,209,255,.14), rgba(192,132,252,.14));
-  box-shadow: 0 0 28px color-mix(in srgb, #4fd1ff 25%, transparent);
-  color: #f3f7ff;
-  font-size: 22px;
-  animation: psfhomeLinkPulse 3.2s ease-in-out infinite;
+  background: none;
+  border: none;
+  box-shadow: none;
+  font-size: 30px;
+  text-shadow: 0 0 18px currentColor;
+  animation: psfhomeLinkFloat 2.6s ease-in-out infinite, psfhomeLinkColor 4.5s ease-in-out infinite;
 }
-@keyframes psfhomeLinkPulse { 0%,100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes psfhomeLinkFloat { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.12); } }
+@keyframes psfhomeLinkColor { 0%,100% { color: #4fd1ff; } 50% { color: #c084fc; } }
 @media (max-width: 720px) {
   .psfhome-avatars { grid-template-columns: 1fr; }
   .psfhome-avatars-link { order: 2; padding: 6px 0; }
