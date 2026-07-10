@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { generateEmbedding } from './embeddings';
 
 const BUCKET = 'knowledge-hub';
 
@@ -54,6 +55,7 @@ export async function saveKnowledgeFile(params: {
   if (uploadError) throw new Error(`Falha ao enviar arquivo para o storage: ${uploadError.message}`);
 
   const extraction = await extractText(params.buffer, params.mimeType, params.fileName);
+  const embedding = extraction.text ? await generateEmbedding(extraction.text) : null;
 
   const { data, error } = await admin
     .schema('core')
@@ -67,7 +69,8 @@ export async function saveKnowledgeFile(params: {
       storage_path: storagePath,
       extracted_text: extraction.text,
       extraction_status: extraction.status,
-      extraction_error: extraction.error
+      extraction_error: extraction.error,
+      embedding
     })
     .select('id, file_name, mime_type, size_bytes, created_at, extraction_status, extraction_error')
     .single();
@@ -129,42 +132,97 @@ export async function deleteKnowledgeFile(userId: string, id: string): Promise<v
 }
 
 /**
- * Busca simples por palavra-chave (v1) nos arquivos de conhecimento do
- * usuario. Nao usa busca vetorial/embeddings ainda -- para o volume
- * pessoal esperado (dezenas de arquivos, nao milhares), contagem de
- * palavras em comum e suficiente. Registrado como limitacao conhecida
- * para uma evolucao futura (ver patch).
+ * Busca de contexto na base de conhecimento do usuario, em 2 camadas:
+ * 1) Busca semantica (por significado, via embeddings) -- prioritaria,
+ *    cobre arquivos enviados apos o PATCH_111.
+ * 2) Busca por palavra-chave (v1, PATCH_086) -- usada apenas para
+ *    arquivos mais antigos que ainda nao tem embedding gerado, para nao
+ *    perder acesso a conteudo ja enviado antes desta melhoria.
  */
 export async function getKnowledgeContext(userId: string, query: string, limit = 3): Promise<string | null> {
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
+  const blocks: string[] = [];
+  const usedFileNames = new Set<string>();
+
+  // Camada 1: busca semantica.
+  const queryEmbedding = await generateEmbedding(query);
+  if (queryEmbedding) {
+    const { data: semanticMatches } = await admin.schema('core').rpc('match_knowledge_files', {
+      query_embedding: queryEmbedding,
+      match_user_id: userId,
+      match_count: limit
+    });
+
+    for (const row of semanticMatches ?? []) {
+      const text = String(row.extracted_text ?? '');
+      if (!text || usedFileNames.has(row.file_name)) continue;
+      blocks.push(`--- ${row.file_name} (relevância semântica: ${(row.similarity * 100).toFixed(0)}%) ---\n${text.slice(0, 20000)}`);
+      usedFileNames.add(row.file_name);
+    }
+  }
+
+  // Camada 2: palavra-chave, so para arquivos SEM embedding (mais antigos)
+  // e so se ainda houver espaco dentro do limite.
+  if (blocks.length < limit) {
+    const { data, error } = await admin
+      .schema('core')
+      .from('knowledge_files')
+      .select('file_name, extracted_text')
+      .eq('user_id', userId)
+      .eq('extraction_status', 'done')
+      .is('embedding', null)
+      .not('extracted_text', 'is', null);
+
+    if (!error && data) {
+      const queryWords = query.toLowerCase().split(/\s+/).filter((word) => word.length > 3);
+      const scored = data
+        .map((row: any) => {
+          const text = String(row.extracted_text ?? '');
+          const lowerText = text.toLowerCase();
+          const score = queryWords.reduce((acc, word) => acc + (lowerText.includes(word) ? 1 : 0), 0);
+          return { fileName: row.file_name as string, text, score };
+        })
+        .filter((item) => item.text && !usedFileNames.has(item.fileName));
+
+      const relevant = queryWords.length > 0
+        ? scored.filter((item) => item.score > 0).sort((a, b) => b.score - a.score)
+        : scored;
+
+      for (const item of relevant.slice(0, limit - blocks.length)) {
+        blocks.push(`--- ${item.fileName} ---\n${item.text.slice(0, 20000)}`);
+      }
+    }
+  }
+
+  if (blocks.length === 0) return null;
+
+  return `BASE DE CONHECIMENTO DO USUARIO (arquivos enviados por ele para consulta):\n\n${blocks.join('\n\n')}\n\nIMPORTANTE: estes arquivos sao a fonte PRIORITARIA sobre o usuario e seus assuntos -- sempre verifique e use essas informacoes primeiro quando forem relevantes para a solicitacao atual, antes de recorrer a conhecimento geral ou busca na web. Nao invente informacoes que nao estejam nesses arquivos. Quando complementar com informacao da internet (busca na web), sempre inclua a fonte/referencia (nome do site ou link) junto da informacao, para que o usuario saiba de onde veio.`;
+}
+
+export async function reindexKnowledgeEmbeddings(userId: string): Promise<{ reindexed: number; failed: number }> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
     .schema('core')
     .from('knowledge_files')
-    .select('file_name, extracted_text')
+    .select('id, extracted_text')
     .eq('user_id', userId)
     .eq('extraction_status', 'done')
+    .is('embedding', null)
     .not('extracted_text', 'is', null);
 
-  if (error || !data || data.length === 0) return null;
+  let reindexed = 0;
+  let failed = 0;
 
-  const queryWords = query.toLowerCase().split(/\s+/).filter((word) => word.length > 3);
+  for (const row of data ?? []) {
+    const embedding = await generateEmbedding(String(row.extracted_text));
+    if (!embedding) {
+      failed += 1;
+      continue;
+    }
+    const { error } = await admin.schema('core').from('knowledge_files').update({ embedding }).eq('id', row.id);
+    if (error) failed += 1;
+    else reindexed += 1;
+  }
 
-  const scored = data
-    .map((row: any) => {
-      const text = String(row.extracted_text ?? '');
-      const lowerText = text.toLowerCase();
-      const score = queryWords.reduce((acc, word) => acc + (lowerText.includes(word) ? 1 : 0), 0);
-      return { fileName: row.file_name as string, text, score };
-    })
-    .filter((item) => item.text);
-
-  const relevant = queryWords.length > 0
-    ? scored.filter((item) => item.score > 0).sort((a, b) => b.score - a.score)
-    : scored;
-
-  const top = relevant.slice(0, limit);
-  if (top.length === 0) return null;
-
-  const blocks = top.map((item) => `--- ${item.fileName} ---\n${item.text.slice(0, 20000)}`);
-  return `BASE DE CONHECIMENTO DO USUARIO (arquivos enviados por ele para consulta):\n\n${blocks.join('\n\n')}\n\nIMPORTANTE: estes arquivos sao a fonte PRIORITARIA sobre o usuario e seus assuntos -- sempre verifique e use essas informacoes primeiro quando forem relevantes para a solicitacao atual, antes de recorrer a conhecimento geral ou busca na web. Nao invente informacoes que nao estejam nesses arquivos. Quando complementar com informacao da internet (busca na web), sempre inclua a fonte/referencia (nome do site ou link) junto da informacao, para que o usuario saiba de onde veio.`;
+  return { reindexed, failed };
 }

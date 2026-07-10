@@ -29,6 +29,28 @@ export default function DocumentsPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexMessage, setReindexMessage] = useState<string | null>(null);
+
+  async function handleReindex() {
+    setReindexing(true);
+    setReindexMessage(null);
+    try {
+      const response = await fetch('/api/knowledge/reindex', { method: 'POST' });
+      const data = await response.json();
+      if (!data.ok) {
+        setReindexMessage('Não foi possível atualizar a busca agora.');
+        return;
+      }
+      setReindexMessage(
+        data.reindexed > 0
+          ? `${data.reindexed} arquivo(s) atualizado(s) para busca por significado.${data.failed > 0 ? ` ${data.failed} falharam.` : ''}`
+          : 'Todos os arquivos já estão com a busca por significado atualizada.'
+      );
+    } finally {
+      setReindexing(false);
+    }
+  }
 
   async function loadFiles() {
     setLoadingList(true);
@@ -129,9 +151,13 @@ export default function DocumentsPage() {
             <div>
               <p className="aios-kicker">ARQUIVOS ENVIADOS</p>
               <h2>Seus documentos</h2>
-              <p className="aios-muted">A IA consulta automaticamente esses arquivos quando forem relevantes para a pergunta ou o documento pedido.</p>
+              <p className="aios-muted">A IA consulta automaticamente esses arquivos quando forem relevantes para a pergunta ou o documento pedido — agora buscando por significado, não só palavra-chave.</p>
             </div>
+            <button className="aios-secondary-button" onClick={handleReindex} disabled={reindexing}>
+              {reindexing ? 'Atualizando busca...' : 'Atualizar busca dos arquivos antigos'}
+            </button>
           </div>
+          {reindexMessage && <p className="aios-muted">{reindexMessage}</p>}
 
           {loadingList ? (
             <p className="aios-muted">Carregando...</p>
