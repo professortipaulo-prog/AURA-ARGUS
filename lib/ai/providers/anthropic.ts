@@ -26,16 +26,29 @@ export const anthropicProvider: AIProviderAdapter = {
   async send(message: string, model: string, systemPrompt?: string): Promise<string> {
     const client = getClient();
 
-    const response = await client.messages.create({
-      model,
-      max_tokens: 1500,
-      ...(systemPrompt ? { system: systemPrompt } : {}),
-      messages: [{ role: 'user', content: message }],
-      // Busca na web nativa da Anthropic (executada pelo servidor da
-      // própria Anthropic — não precisa de chave nova nem de outro
-      // provedor). O modelo decide sozinho quando vale a pena buscar.
-      tools: [{ type: 'web_search_20250305', name: 'web_search' } as unknown as Anthropic.Tool]
-    });
+    const response = await client.messages.create(
+      {
+        model,
+        max_tokens: 1500,
+        ...(systemPrompt ? { system: systemPrompt } : {}),
+        messages: [{ role: 'user', content: message }],
+        // Busca na web nativa da Anthropic (executada pelo servidor da
+        // própria Anthropic — não precisa de chave nova nem de outro
+        // provedor). O modelo decide sozinho quando vale a pena buscar.
+        //
+        // web_fetch permite abrir e ler o conteudo real de um link
+        // especifico que o usuario cole na mensagem (ex: um video do
+        // YouTube, um artigo) -- sem isso, o modelo so consegue *buscar*
+        // por paginas indexadas, nao *abrir* uma URL exata que o usuario
+        // compartilhou. So funciona para URLs que ja apareceram na
+        // propria conversa (protecao de seguranca da Anthropic).
+        tools: [
+          { type: 'web_search_20250305', name: 'web_search' } as unknown as Anthropic.Tool,
+          { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 5 } as unknown as Anthropic.Tool
+        ]
+      },
+      { headers: { 'anthropic-beta': 'web-fetch-2025-09-10' } }
+    );
 
     // Com busca na web habilitada, a resposta pode ter vários blocos de
     // texto intercalados com blocos de busca/uso de ferramenta — juntamos
