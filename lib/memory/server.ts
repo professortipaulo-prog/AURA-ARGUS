@@ -382,7 +382,7 @@ function extractFirst(text: string, patterns: RegExp[], max = 120) {
   return null;
 }
 
-function extractMemoryCandidate(userMessage: string, projectId?: string | null): MemoryCandidate | null {
+export function extractMemoryCandidate(userMessage: string, projectId?: string | null): MemoryCandidate | null {
   const text = userMessage.trim();
   const lower = stripAccents(text);
   if (text.length < 4) return null;

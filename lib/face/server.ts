@@ -10,7 +10,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 // que costuma ficar acima de 1.0).
 const MATCH_THRESHOLD = 0.85;
 
-function euclideanDistance(a: number[], b: number[]): number {
+export function euclideanDistance(a: number[], b: number[]): number {
   let sum = 0;
   for (let i = 0; i < a.length; i += 1) {
     const diff = (a[i] ?? 0) - (b[i] ?? 0);
