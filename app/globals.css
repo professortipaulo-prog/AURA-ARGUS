@@ -665,7 +665,7 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .psfhome-mini-card b { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 16px; margin-bottom: 18px; color: #67e8f9; background: rgba(34,211,238,.12); }
 .psfhome-mini-card strong { display: block; color: #fff; font-size: 19px; }
 .psfhome-mini-card p { margin: 10px 0 0; color: #aebdd3; line-height: 1.6; }
-.psfhome-avatars { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.psfhome-avatars { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 40px; align-items: stretch; margin: 0 auto; }
 .psfhome-avatars-link { display: flex; align-items: center; justify-content: center; }
 .psfhome-avatars-link-icon {
   display: flex;
