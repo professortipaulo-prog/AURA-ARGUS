@@ -94,6 +94,9 @@ export default function HomePage() {
             <p>Assistente Universal de Raciocínio e Ação</p>
             <small>Compreende, organiza e orienta.</small>
           </div>
+          <div className="psfhome-avatars-link" aria-hidden="true">
+            <span className="psfhome-avatars-link-icon">⇄</span>
+          </div>
           <div className="psfhome-avatar psfhome-avatar-argus">
             <span className="psfhome-avatar-orbit">ARGUS</span>
             <img src="/avatars/argus.webp" alt="Avatar do ARGUS" />

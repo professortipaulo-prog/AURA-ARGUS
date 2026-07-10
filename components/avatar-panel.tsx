@@ -33,7 +33,7 @@ export function AvatarPanel({ persona = 'aura', state = 'idle', large = false }:
         <span className="aios-avatar-halo" />
         <span className="aios-avatar-halo secondary" />
         <div className={`aios-avatar-photo avatar-state-${state}`}>
-          <Image src={avatar.src} alt={`Avatar ${avatar.label}`} fill sizes="320px" className="object-cover" priority={false} />
+          <Image src={avatar.src} alt={`Avatar ${avatar.label}`} fill sizes="320px" className="object-cover object-top" priority={false} />
           <span className="avatar-eye eye-left" />
           <span className="avatar-eye eye-right" />
           <span className="avatar-mouth" />
