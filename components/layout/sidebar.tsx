@@ -9,6 +9,7 @@ const items: Array<[string, string, string]> = [
   ['Projetos', '/dashboard/projects', '▣'],
   ['Documentos', '/dashboard/documents', '▤'],
   ['Ações', '/dashboard/actions', '⚡'],
+  ['Central de Estudos', '/dashboard/estudos', '🎓'],
   ['Memória', '/dashboard/memory', '◌'],
   ['Agentes', '/dashboard/agents', '✦'],
   ['Configurações', '/dashboard/settings', '⚙']
