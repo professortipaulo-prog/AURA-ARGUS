@@ -404,6 +404,14 @@ export default function ChatPage() {
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/profile/preferences')
+      .then((res) => res.json())
+      .then((data) => setMusicUrl(data.musicUrl ?? null))
+      .catch(() => undefined);
+  }, []);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
 
   const active = PERSONAS[persona];
@@ -876,6 +884,21 @@ export default function ChatPage() {
               }}
             />
             <div className="chat-composer-actions">
+              <button
+                type="button"
+                className="chat-music-button"
+                onClick={() => {
+                  if (musicUrl) {
+                    window.open(musicUrl, '_blank', 'noopener,noreferrer');
+                  } else {
+                    window.location.href = '/dashboard/settings';
+                  }
+                }}
+                aria-label="Botão de desestresse — abrir sua música/rádio favorita"
+                title={musicUrl ? 'Abrir sua música/rádio favorita' : 'Configure sua música favorita em Configurações'}
+              >
+                🎵
+              </button>
               <button
                 type="button"
                 className="chat-location-button"

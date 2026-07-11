@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/header';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FaceEnrollmentPanel } from '@/components/face-enrollment';
+import { MusicPreferencePanel } from '@/components/music-preference-panel';
 
 export default function Page() {
   return (
@@ -16,6 +17,7 @@ export default function Page() {
             <Input placeholder="Perfil DISC" />
           </div>
         </Card>
+        <MusicPreferencePanel />
         <FaceEnrollmentPanel />
       </section>
     </>
