@@ -56,6 +56,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: GENERIC_ERROR }, { status: 500 });
     }
 
+    // Sessao unica: derruba qualquer outro dispositivo/navegador logado
+    // nesta mesma conta, mantendo so a sessao que acabou de entrar.
+    await serverClient.auth.signOut({ scope: 'others' }).catch(() => undefined);
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false, error: GENERIC_ERROR }, { status: 500 });

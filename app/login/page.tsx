@@ -36,6 +36,10 @@ export default function LoginPage() {
       return;
     }
 
+    // Sessao unica: derruba qualquer outro dispositivo/navegador logado
+    // nesta mesma conta, mantendo so a sessao que acabou de entrar.
+    await supabase.auth.signOut({ scope: 'others' }).catch(() => undefined);
+
     await fetch('/api/auth/profile', { method: 'POST' }).catch(() => null);
     router.replace('/dashboard');
     router.refresh();
