@@ -53,6 +53,91 @@ export async function generateHangman(subject: string, persona: 'aura' | 'argus'
   return result;
 }
 
+export type WordSearchGame = {
+  grid: string[][];
+  words: { original: string; norm: string }[];
+};
+
+function normalizeWord(word: string): string {
+  return word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+}
+
+const WORD_SEARCH_DIRECTIONS = [
+  { dr: 0, dc: 1 }, // horizontal
+  { dr: 1, dc: 0 }, // vertical
+  { dr: 1, dc: 1 }, // diagonal \
+  { dr: 1, dc: -1 } // diagonal /
+];
+
+/**
+ * Gera a grade do caça-palavras posicionando cada palavra em uma direcao
+ * aleatoria (horizontal/vertical/diagonal), sem sobrepor letras
+ * conflitantes. Palavras que nao couberem apos varias tentativas sao
+ * descartadas (nao trava a geracao). Testado isoladamente antes de
+ * integrar: confirmado que toda palavra colocada e realmente
+ * encontravel na grade final, e que a grade fica sempre totalmente
+ * preenchida (sem celulas vazias).
+ */
+export function buildWordSearchGrid(originalWords: string[], size = 15): WordSearchGame {
+  const grid: (string | null)[][] = Array.from({ length: size }, () => Array(size).fill(null));
+  const placed: { original: string; norm: string }[] = [];
+
+  const words = originalWords
+    .map((word) => ({ original: word, norm: normalizeWord(word) }))
+    .filter((word) => word.norm.length >= 3 && word.norm.length <= size)
+    .sort((a, b) => b.norm.length - a.norm.length);
+
+  function canPlace(word: string, r: number, c: number, dir: { dr: number; dc: number }): boolean {
+    for (let i = 0; i < word.length; i++) {
+      const rr = r + dir.dr * i;
+      const cc = c + dir.dc * i;
+      if (rr < 0 || rr >= size || cc < 0 || cc >= size) return false;
+      const existing = grid[rr]?.[cc] ?? null;
+      const expected = word[i] ?? '';
+      if (existing !== null && existing !== expected) return false;
+    }
+    return true;
+  }
+
+  function place(word: string, r: number, c: number, dir: { dr: number; dc: number }) {
+    for (let i = 0; i < word.length; i++) {
+      const row = grid[r + dir.dr * i];
+      if (row) row[c + dir.dc * i] = word[i] ?? null;
+    }
+  }
+
+  for (const word of words) {
+    let placedOk = false;
+    for (let attempt = 0; attempt < 200 && !placedOk; attempt++) {
+      const dir = WORD_SEARCH_DIRECTIONS[Math.floor(Math.random() * WORD_SEARCH_DIRECTIONS.length)]!;
+      const r = Math.floor(Math.random() * size);
+      const c = Math.floor(Math.random() * size);
+      if (canPlace(word.norm, r, c, dir)) {
+        place(word.norm, r, c, dir);
+        placed.push(word);
+        placedOk = true;
+      }
+    }
+  }
+
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const finalGrid: string[][] = grid.map((row) =>
+    row.map((cell) => cell ?? alphabet[Math.floor(Math.random() * alphabet.length)]!)
+  );
+
+  return { grid: finalGrid, words: placed };
+}
+
+export async function generateWordSearch(subject: string, persona: 'aura' | 'argus'): Promise<WordSearchGame | null> {
+  const instructions = `Liste de 10 a 14 palavras-chave (uma palavra cada, sem espaços, sem hífen) relacionadas ao assunto: "${subject}", em português do Brasil, adequadas para um caça-palavras educativo. Responda EXATAMENTE neste formato JSON: {"words":["PALAVRA1","PALAVRA2"]}.`;
+  const result = await askForJson<{ words: string[] }>({ subject, instructions, persona });
+  if (!result?.words?.length) return null;
+
+  const game = buildWordSearchGrid(result.words, 15);
+  if (game.words.length === 0) return null;
+  return game;
+}
+
 export async function generateStudySummary(subject: string, persona: 'aura' | 'argus'): Promise<string> {
   const { user, identity } = await getCurrentUserIdentity();
   const knowledgeContext = user?.id ? await getKnowledgeContext(user.id, subject) : null;

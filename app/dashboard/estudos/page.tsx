@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/header';
 import { QuizGamePlayer } from '@/components/study/quiz-game';
 import { HangmanGamePlayer } from '@/components/study/hangman-game';
-import type { QuizGame, HangmanGame } from '@/lib/study/generation';
+import { WordSearchGamePlayer } from '@/components/study/wordsearch-game';
+import type { QuizGame, HangmanGame, WordSearchGame } from '@/lib/study/generation';
 
-type Mode = 'idle' | 'summary' | 'game-select' | 'quiz' | 'hangman';
+type Mode = 'idle' | 'summary' | 'game-select' | 'quiz' | 'hangman' | 'wordsearch';
 
 export default function EstudosPage() {
   const [subject, setSubject] = useState('');
@@ -17,6 +18,7 @@ export default function EstudosPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<QuizGame | null>(null);
   const [hangman, setHangman] = useState<HangmanGame | null>(null);
+  const [wordsearch, setWordsearch] = useState<WordSearchGame | null>(null);
 
   function requireSubject(): boolean {
     if (!subject.trim()) {
@@ -92,6 +94,27 @@ export default function EstudosPage() {
     }
   }
 
+  async function handleStartWordSearch() {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/study/wordsearch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, persona })
+      });
+      const data = await response.json();
+      if (!data.ok) {
+        setError(data.error ?? 'Não consegui montar o caça-palavras agora.');
+        return;
+      }
+      setWordsearch(data.game);
+      setMode('wordsearch');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       <Header title="Central de Estudos" subtitle="Foco, resumos e jogos sobre o que você está estudando." />
@@ -161,8 +184,9 @@ export default function EstudosPage() {
             <div className="aios-action-bar" style={{ marginTop: 14 }}>
               <button className="aios-primary-button" onClick={handleStartQuiz} disabled={loading}>💰 Jogo do Milhão</button>
               <button className="aios-primary-button" onClick={handleStartHangman} disabled={loading}>🪢 Forca</button>
+              <button className="aios-primary-button" onClick={handleStartWordSearch} disabled={loading}>🔎 Caça-palavras</button>
             </div>
-            <p className="aios-muted" style={{ marginTop: 14 }}>Caça-palavras e palavras cruzadas chegam em breve.</p>
+            <p className="aios-muted" style={{ marginTop: 14 }}>Palavras cruzadas chega em breve.</p>
           </div>
         )}
 
@@ -175,6 +199,12 @@ export default function EstudosPage() {
         {mode === 'hangman' && hangman && (
           <div className="aios-panel">
             <HangmanGamePlayer game={hangman} onExit={() => setMode('game-select')} />
+          </div>
+        )}
+
+        {mode === 'wordsearch' && wordsearch && (
+          <div className="aios-panel">
+            <WordSearchGamePlayer game={wordsearch} onExit={() => setMode('game-select')} />
           </div>
         )}
       </section>

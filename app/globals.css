@@ -1889,6 +1889,14 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 
 .aios-study-summary { line-height: 1.7; color: #dbe4f3; }
 
+.aios-wordsearch-board { display: grid; gap: 2px; user-select: none; -webkit-user-select: none; touch-action: none; width: min(92vw, 480px); aspect-ratio: 1; margin: 18px auto; }
+.aios-wordsearch-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: 'Courier New', monospace; font-weight: 700; font-size: clamp(9px, 2.4vw, 15px); background: rgba(15,23,42,.7); border: 1px solid rgba(148,163,184,.18); border-radius: 3px; cursor: pointer; color: #e2e8f0; }
+.aios-wordsearch-cell.preview { background: rgba(79,209,255,.22); color: #4fd1ff; }
+.aios-wordsearch-cell.found { background: #4fd1ff; color: #03050a; }
+.aios-wordsearch-list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 14px 0 0; padding: 0; justify-content: center; }
+.aios-wordsearch-list li { padding: 4px 12px; border-radius: 12px; background: rgba(79,209,255,.12); color: #4fd1ff; font-size: 12px; font-weight: 700; }
+.aios-wordsearch-list li.found { text-decoration: line-through; opacity: .5; }
+
 @media (max-width: 640px) {
   .aios-quiz-options { grid-template-columns: 1fr; }
   .aios-hangman-keyboard { grid-template-columns: repeat(6, minmax(0, 1fr)); }
