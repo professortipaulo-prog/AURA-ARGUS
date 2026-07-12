@@ -11,15 +11,16 @@ export async function getBetaStatus(): Promise<BetaStatus> {
   const total = config?.max_signups ?? 15;
   const open = config?.signup_open ?? true;
 
-  // O seu proprio e-mail (dono/admin) nunca conta como vaga do beta --
-  // assim voce pode testar o formulario quantas vezes quiser sem tirar
-  // acesso de nenhum dos 15 alunos reais.
+  // O seu proprio e-mail (dono/admin) e o alias de teste dele nunca
+  // contam como vaga do beta -- assim voce pode testar o formulario
+  // quantas vezes quiser sem tirar acesso de nenhum dos 15 alunos reais.
+  const TEST_EMAILS = [ADMIN_EMAIL, 'professortipaulo+teste@gmail.com', 'profpaulofilho@gmail.com'];
   const { count } = await admin
     .schema('core')
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .eq('beta_cohort', true)
-    .neq('email', ADMIN_EMAIL);
+    .not('email', 'in', `(${TEST_EMAILS.join(',')})`);
   const used = count ?? 0;
 
   return { remaining: Math.max(0, total - used), total, open };
