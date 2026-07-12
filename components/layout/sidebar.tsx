@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { LogoWithWordmark } from '@/components/brand/logo-mark';
 
-const items: Array<[string, string, string]> = [
+const fullItems: Array<[string, string, string]> = [
   ['Central de Operações', '/dashboard', '⌂'],
   ['Chat IA', '/dashboard/chat', '▱'],
   ['Perfil', '/dashboard/profile', '◎'],
@@ -15,21 +15,58 @@ const items: Array<[string, string, string]> = [
   ['Configurações', '/dashboard/settings', '⚙']
 ];
 
+// Contas de aluno (Estudantil) veem um menu enxuto, focado no que
+// interessa a elas -- sem Central de Operacoes, Projetos, Acoes,
+// Agentes (linguagem e ferramentas voltadas a uso profissional).
+const studentItems: Array<[string, string, string]> = [
+  ['Central de Estudos', '/dashboard/estudos', '🎓'],
+  ['Chat IA', '/dashboard/chat', '▱'],
+  ['Documentos', '/dashboard/documents', '▤'],
+  ['Memória', '/dashboard/memory', '◌'],
+  ['Configurações', '/dashboard/settings', '⚙']
+];
+
+// Contas Worker: foco em produtividade/rotina administrativa -- sem
+// Central de Estudos (nao se aplica) nem itens de gestao da plataforma
+// (Projetos, Agentes, Central de Operacoes, Admin).
+const workerItems: Array<[string, string, string]> = [
+  ['Chat IA', '/dashboard/chat', '▱'],
+  ['Ações', '/dashboard/actions', '⚡'],
+  ['Documentos', '/dashboard/documents', '▤'],
+  ['Memória', '/dashboard/memory', '◌'],
+  ['Configurações', '/dashboard/settings', '⚙']
+];
+
 const adminOnlyItem: [string, string, string] = ['Admin', '/dashboard/admin', '◆'];
 
 type SidebarProps = {
   displayName?: string | null;
+  email?: string | null;
   role?: string | null;
+  accountType?: 'estudantil' | 'worker' | 'plus' | null;
 };
 
-export function Sidebar({ displayName, role }: SidebarProps) {
+const HOME_BY_TYPE: Record<string, string> = {
+  estudantil: '/dashboard/estudos',
+  worker: '/dashboard/actions'
+};
+
+export function Sidebar({ displayName, email, role, accountType }: SidebarProps) {
   const isPrivileged = role === 'owner' || role === 'admin';
-  const visibleItems = isPrivileged ? [...items, adminOnlyItem] : items;
+  const isRestrictedAccount = accountType === 'estudantil' || accountType === 'worker';
+
+  const baseItems = accountType === 'estudantil' ? studentItems : accountType === 'worker' ? workerItems : fullItems;
+  const visibleItems = isPrivileged && !isRestrictedAccount ? [...baseItems, adminOnlyItem] : baseItems;
+  const homeHref = (accountType && HOME_BY_TYPE[accountType]) || '/dashboard';
+  const name = displayName || email || 'Usuário';
+  const initial = name.trim().charAt(0).toUpperCase() || 'U';
+  const roleLabel = accountType === 'estudantil' ? 'aluno (beta)' : accountType === 'worker' ? 'worker (beta)' : role ?? 'owner';
+  const subtitle = accountType === 'estudantil' ? 'Estudantil' : accountType === 'worker' ? 'Worker' : 'AI Operating System';
 
   return (
     <aside className="aios-sidebar">
-      <Link href="/dashboard" className="aios-sidebar-brand">
-        <LogoWithWordmark subtitle="AI Operating System" />
+      <Link href={homeHref} className="aios-sidebar-brand">
+        <LogoWithWordmark subtitle={subtitle} />
       </Link>
       <nav className="aios-nav">
         {visibleItems.map(([label, href, icon]) => (
@@ -40,11 +77,11 @@ export function Sidebar({ displayName, role }: SidebarProps) {
         ))}
       </nav>
       <div className="aios-session-card">
-        <div className="aios-user-avatar">P</div>
+        <div className="aios-user-avatar">{initial}</div>
         <div>
-          <strong>Paulo S. Filho</strong>
-          <p>{displayName ?? 'professortipaulo@gmail.com'}</p>
-          <em>Perfil: {role ?? 'owner'}</em>
+          <strong>{name}</strong>
+          <p>{email ?? ''}</p>
+          <em>Perfil: {roleLabel}</em>
         </div>
         <form action="/auth/sign-out" method="post">
           <button type="submit">Sair do sistema</button>

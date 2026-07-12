@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { signupBetaUser } from '@/lib/beta/signup';
+import { signupBetaUser, type BetaProgram } from '@/lib/beta/signup';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   const guardianName = typeof body?.guardianName === 'string' ? body.guardianName.trim() : undefined;
   const guardianEmail = typeof body?.guardianEmail === 'string' ? body.guardianEmail.trim() : undefined;
   const lgpdConsent = Boolean(body?.lgpdConsent);
+  const program: BetaProgram = body?.program === 'worker' ? 'worker' : 'estudantil';
 
   if (!lgpdConsent) {
     return NextResponse.json({ ok: false, error: 'É necessário aceitar os termos de uso de dados (LGPD) para continuar.' }, { status: 400 });
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
   const isMinor = age < 18;
 
-  const result = await signupBetaUser({ isMinor, fullName, email, password, dateOfBirth, guardianName, guardianEmail });
+  const result = await signupBetaUser({ program, isMinor, fullName, email, password, dateOfBirth, guardianName, guardianEmail });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 
   return NextResponse.json({ ok: true, isMinor });

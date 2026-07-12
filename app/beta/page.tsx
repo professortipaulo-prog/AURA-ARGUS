@@ -1,11 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MatrixRain } from '@/components/matrix-rain';
 
-export default function BetaSignupPage() {
+type Program = 'estudantil' | 'worker';
+
+const PROGRAM_LABEL: Record<Program, string> = {
+  estudantil: 'AURA & ARGUS Estudantil',
+  worker: 'AURA & ARGUS Worker'
+};
+
+function BetaSignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const program: Program = searchParams.get('program') === 'worker' ? 'worker' : 'estudantil';
+
   const [status, setStatus] = useState<{ remaining: number; total: number; open: boolean } | null>(null);
   const [isMinor, setIsMinor] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -20,11 +30,11 @@ export default function BetaSignupPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetch('/api/beta/status')
+    fetch(`/api/beta/status?program=${program}`)
       .then((res) => res.json())
       .then(setStatus)
       .catch(() => setStatus({ remaining: 0, total: 15, open: false }));
-  }, []);
+  }, [program]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -40,7 +50,7 @@ export default function BetaSignupPage() {
       const response = await fetch('/api/beta/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, password, dateOfBirth, guardianName, guardianEmail, lgpdConsent })
+        body: JSON.stringify({ program, fullName, email, password, dateOfBirth, guardianName, guardianEmail, lgpdConsent })
       });
       const data = await response.json();
       if (!data.ok) {
@@ -76,7 +86,7 @@ export default function BetaSignupPage() {
         </div>
         <div className="aios-beta-card">
           <h1>Vagas encerradas</h1>
-          <p>As vagas do teste beta do AURA &amp; ARGUS já foram todas preenchidas. Obrigado pelo interesse!</p>
+          <p>As vagas do teste beta do {PROGRAM_LABEL[program]} já foram todas preenchidas. Obrigado pelo interesse!</p>
           <p className="aios-muted">
             Já tem uma conta? <a href="/login" style={{ color: '#4fd1ff' }}>Entrar</a>
           </p>
@@ -91,7 +101,7 @@ export default function BetaSignupPage() {
         <MatrixRain />
       </div>
       <form className="aios-beta-card" onSubmit={handleSubmit}>
-        <h1>Teste Beta — AURA &amp; ARGUS Estudantil</h1>
+        <h1>Teste Beta — {PROGRAM_LABEL[program]}</h1>
         <p className="aios-muted">
           {status ? `${status.remaining} de ${status.total} vagas disponíveis.` : 'Carregando vagas...'}
         </p>
@@ -105,12 +115,12 @@ export default function BetaSignupPage() {
         </label>
 
         <label className="aios-form-control">
-          <span>{isMinor ? 'Nome completo do(a) aluno(a)' : 'Nome completo'}</span>
+          <span>{isMinor ? 'Nome completo do(a) participante' : 'Nome completo'}</span>
           <input className="aios-input" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </label>
 
         <label className="aios-form-control">
-          <span>Data de nascimento {isMinor ? 'do(a) aluno(a)' : ''}</span>
+          <span>Data de nascimento {isMinor ? 'do(a) participante' : ''}</span>
           <input className="aios-input" type="date" required value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
         </label>
 
@@ -140,7 +150,7 @@ export default function BetaSignupPage() {
         <label className="aios-beta-toggle">
           <input type="checkbox" checked={lgpdConsent} onChange={(e) => setLgpdConsent(e.target.checked)} required />
           {isMinor
-            ? 'Declaro que sou responsável legal pelo(a) menor indicado(a) acima e autorizo, conforme a LGPD, o uso dos dados informados para criação e uso da conta de teste do AURA & ARGUS por 7 dias.'
+            ? 'Declaro que sou responsável legal pelo(a) participante indicado(a) acima e autorizo, conforme a LGPD, o uso dos dados informados para criação e uso da conta de teste do AURA & ARGUS por 7 dias.'
             : 'Aceito o uso dos meus dados, conforme a LGPD, para criação e uso desta conta de teste do AURA & ARGUS por 7 dias.'}
         </label>
 
@@ -159,5 +169,13 @@ export default function BetaSignupPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+export default function BetaSignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <BetaSignupForm />
+    </Suspense>
   );
 }

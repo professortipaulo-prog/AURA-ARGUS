@@ -2,24 +2,26 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { DEFAULT_ORGANIZATION_ID, DEFAULT_ORGANIZATION_SLUG } from '@/lib/auth/constants';
 import { ADMIN_EMAIL } from '@/lib/auth/constants';
 
+export type BetaProgram = 'estudantil' | 'worker';
 export type BetaStatus = { remaining: number; total: number; open: boolean };
 
-export async function getBetaStatus(): Promise<BetaStatus> {
+const TEST_EMAILS = [ADMIN_EMAIL, 'professortipaulo+teste@gmail.com', 'profpaulofilho@gmail.com'];
+
+export async function getBetaStatus(program: BetaProgram): Promise<BetaStatus> {
   const admin = createSupabaseAdminClient();
 
-  const { data: config } = await admin.schema('core').from('beta_config').select('max_signups, signup_open').eq('id', true).maybeSingle();
+  const { data: config } = await admin.schema('core').from('beta_config').select('max_signups, signup_open').eq('program', program).maybeSingle();
   const total = config?.max_signups ?? 15;
   const open = config?.signup_open ?? true;
 
-  // O seu proprio e-mail (dono/admin) e o alias de teste dele nunca
+  // O seu proprio e-mail (dono/admin) e os alias de teste dele nunca
   // contam como vaga do beta -- assim voce pode testar o formulario
-  // quantas vezes quiser sem tirar acesso de nenhum dos 15 alunos reais.
-  const TEST_EMAILS = [ADMIN_EMAIL, 'professortipaulo+teste@gmail.com', 'profpaulofilho@gmail.com'];
+  // quantas vezes quiser sem tirar acesso de nenhuma vaga real.
   const { count } = await admin
     .schema('core')
     .from('profiles')
     .select('id', { count: 'exact', head: true })
-    .eq('beta_cohort', true)
+    .eq('account_type', program)
     .not('email', 'in', `(${TEST_EMAILS.join(',')})`);
   const used = count ?? 0;
 
@@ -27,6 +29,7 @@ export async function getBetaStatus(): Promise<BetaStatus> {
 }
 
 export async function signupBetaUser(params: {
+  program: BetaProgram;
   isMinor: boolean;
   fullName: string;
   email: string;
@@ -39,15 +42,15 @@ export async function signupBetaUser(params: {
     return { ok: false, error: 'Nome e senha (mínimo 8 caracteres) são obrigatórios.' };
   }
   if (params.isMinor && (!params.guardianName?.trim() || !params.guardianEmail?.trim())) {
-    return { ok: false, error: 'Para aluno menor de 18 anos, é obrigatório informar nome e e-mail do responsável.' };
+    return { ok: false, error: 'Para participante menor de 18 anos, é obrigatório informar nome e e-mail do responsável.' };
   }
   if (!params.isMinor && !params.email.trim()) {
     return { ok: false, error: 'E-mail é obrigatório.' };
   }
 
-  const status = await getBetaStatus();
+  const status = await getBetaStatus(params.program);
   if (!status.open || status.remaining <= 0) {
-    return { ok: false, error: 'As vagas do beta já foram todas preenchidas.' };
+    return { ok: false, error: 'As vagas deste beta já foram todas preenchidas.' };
   }
 
   const loginEmail = params.isMinor ? params.guardianEmail!.trim() : params.email.trim();
@@ -92,6 +95,7 @@ export async function signupBetaUser(params: {
           guardian_email: params.isMinor ? params.guardianEmail!.trim() : null,
           guardian_consent_at: params.isMinor ? new Date().toISOString() : null,
           beta_cohort: true,
+          account_type: params.program,
           status: 'active'
         },
         { onConflict: 'id' }
