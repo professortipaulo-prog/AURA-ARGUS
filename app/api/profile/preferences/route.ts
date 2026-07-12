@@ -29,7 +29,14 @@ export async function POST(request: NextRequest) {
   const { data: current } = await admin.schema('core').from('profiles').select('preferences').eq('id', session.userId).maybeSingle();
   const preferences = { ...(current?.preferences as object ?? {}), musicUrl: musicUrl || null };
 
-  const { error } = await admin.schema('core').from('profiles').update({ preferences }).eq('id', session.userId);
+  // upsert (nao update): se a linha do perfil ainda nao existir por
+  // qualquer motivo, update() nao daria erro nenhum mas tambem nao
+  // salvaria nada (silenciosamente) -- upsert garante que a preferencia
+  // e salva de qualquer forma, criando a linha se precisar.
+  const { error } = await admin
+    .schema('core')
+    .from('profiles')
+    .upsert({ id: session.userId, email: session.email, preferences }, { onConflict: 'id' });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
