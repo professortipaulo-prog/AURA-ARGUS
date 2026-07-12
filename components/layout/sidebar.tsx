@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LogoWithWordmark } from '@/components/brand/logo-mark';
+import { PreviewModeToggle } from '@/components/layout/preview-mode-toggle';
 
 const fullItems: Array<[string, string, string]> = [
   ['Central de Operações', '/dashboard', '⌂'],
@@ -44,6 +45,8 @@ type SidebarProps = {
   email?: string | null;
   role?: string | null;
   accountType?: 'estudantil' | 'worker' | 'plus' | null;
+  canPreview?: boolean;
+  previewType?: 'estudantil' | 'worker' | null;
 };
 
 const HOME_BY_TYPE: Record<string, string> = {
@@ -51,7 +54,7 @@ const HOME_BY_TYPE: Record<string, string> = {
   worker: '/dashboard/actions'
 };
 
-export function Sidebar({ displayName, email, role, accountType }: SidebarProps) {
+export function Sidebar({ displayName, email, role, accountType, canPreview, previewType }: SidebarProps) {
   const isPrivileged = role === 'owner' || role === 'admin';
   const isRestrictedAccount = accountType === 'estudantil' || accountType === 'worker';
 
@@ -60,7 +63,13 @@ export function Sidebar({ displayName, email, role, accountType }: SidebarProps)
   const homeHref = (accountType && HOME_BY_TYPE[accountType]) || '/dashboard';
   const name = displayName || email || 'Usuário';
   const initial = name.trim().charAt(0).toUpperCase() || 'U';
-  const roleLabel = accountType === 'estudantil' ? 'aluno (beta)' : accountType === 'worker' ? 'worker (beta)' : role ?? 'owner';
+  const roleLabel = previewType
+    ? `visualizando como ${previewType === 'estudantil' ? 'aluno' : 'worker'}`
+    : accountType === 'estudantil'
+      ? 'aluno (beta)'
+      : accountType === 'worker'
+        ? 'worker (beta)'
+        : role ?? 'owner';
   const subtitle = accountType === 'estudantil' ? 'Estudantil' : accountType === 'worker' ? 'Worker' : 'AI Operating System';
 
   return (
@@ -76,6 +85,7 @@ export function Sidebar({ displayName, email, role, accountType }: SidebarProps)
           </Link>
         ))}
       </nav>
+      {canPreview && <PreviewModeToggle previewType={previewType ?? null} />}
       <div className="aios-session-card">
         <div className="aios-user-avatar">{initial}</div>
         <div>

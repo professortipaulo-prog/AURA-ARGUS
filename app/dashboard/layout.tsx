@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { Sidebar } from '@/components/layout/sidebar';
-import { getSession } from '@/lib/auth/session';
+import { getSession, isAdmin } from '@/lib/auth/session';
 import { LivingBackground } from '@/components/living-background';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { PREVIEW_COOKIE } from '@/lib/admin/preview-mode';
 
 const BETA_DAYS = 7;
 
@@ -28,12 +30,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (elapsedDays > BETA_DAYS) redirect('/beta/expired');
   }
 
-  const accountType = (profile?.account_type as 'estudantil' | 'worker' | 'plus' | null) ?? null;
+  const realAccountType = (profile?.account_type as 'estudantil' | 'worker' | 'plus' | null) ?? null;
+
+  // Modo de visualizacao: dono/admin pode "testar como" Estudantil ou
+  // Worker sem precisar de uma conta separada -- so muda o que aparece
+  // na tela, nunca o dado real da conta. So funciona para quem
+  // realmente e owner/admin, e so quando a conta nao ja e restrita de
+  // verdade (nao faz sentido "prever" cima de uma conta ja restrita).
+  const previewCookie = cookies().get(PREVIEW_COOKIE)?.value;
+  const canPreview = isAdmin(session) && realAccountType === null;
+  const previewType = canPreview && (previewCookie === 'estudantil' || previewCookie === 'worker') ? previewCookie : null;
+  const accountType = previewType ?? realAccountType;
 
   return (
     <div className="aios-shell">
       <LivingBackground persona="argus" />
-      <Sidebar displayName={session.displayName ?? session.email} email={session.email} role={session.role} accountType={accountType} />
+      <Sidebar
+        displayName={session.displayName ?? session.email}
+        email={session.email}
+        role={session.role}
+        accountType={accountType}
+        canPreview={canPreview}
+        previewType={previewType}
+      />
       <main className="aios-main">{children}</main>
     </div>
   );

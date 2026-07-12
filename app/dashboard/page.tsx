@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { Header } from '@/components/layout/header';
 import { DashboardAvatarSwitcher } from '@/components/dashboard-avatar-switcher';
-import { getSession } from '@/lib/auth/session';
+import { getSession, isAdmin } from '@/lib/auth/session';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { PREVIEW_COOKIE } from '@/lib/admin/preview-mode';
 
 const metrics = [
   ['Status', 'Live', 'Sistema online'],
@@ -19,11 +21,17 @@ export default async function DashboardPage() {
   if (session) {
     const admin = createSupabaseAdminClient();
     const { data: profile } = await admin.schema('core').from('profiles').select('account_type').eq('id', session.userId).maybeSingle();
-    // Contas Estudantil e Worker nao veem a Central de Operacoes -- essa
-    // tela e voltada a uso administrativo geral da plataforma. Cada tipo
-    // de conta vai direto para a sua propria home.
-    if (profile?.account_type === 'estudantil') redirect('/dashboard/estudos');
-    if (profile?.account_type === 'worker') redirect('/dashboard/actions');
+    const realAccountType = profile?.account_type ?? null;
+
+    const previewCookie = cookies().get(PREVIEW_COOKIE)?.value;
+    const canPreview = isAdmin(session) && realAccountType === null;
+    const effectiveType = canPreview && (previewCookie === 'estudantil' || previewCookie === 'worker') ? previewCookie : realAccountType;
+
+    // Contas Estudantil e Worker (reais ou em modo de visualizacao) nao
+    // veem a Central de Operacoes -- essa tela e voltada a uso
+    // administrativo geral da plataforma. Cada tipo vai para sua home.
+    if (effectiveType === 'estudantil') redirect('/dashboard/estudos');
+    if (effectiveType === 'worker') redirect('/dashboard/actions');
   }
 
   return (
