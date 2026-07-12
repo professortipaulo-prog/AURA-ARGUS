@@ -77,6 +77,9 @@ export default function BetaSignupPage() {
         <div className="aios-beta-card">
           <h1>Vagas encerradas</h1>
           <p>As vagas do teste beta do AURA &amp; ARGUS já foram todas preenchidas. Obrigado pelo interesse!</p>
+          <p className="aios-muted">
+            Já tem uma conta? <a href="/login" style={{ color: '#4fd1ff' }}>Entrar</a>
+          </p>
         </div>
       </div>
     );
@@ -150,6 +153,10 @@ export default function BetaSignupPage() {
         <button className="aios-primary-button" type="submit" disabled={submitting}>
           {submitting ? 'Criando conta...' : 'Criar minha conta de teste'}
         </button>
+
+        <p className="aios-muted" style={{ textAlign: 'center', marginTop: 4 }}>
+          Já tem uma conta? <a href="/login" style={{ color: '#4fd1ff' }}>Entrar</a>
+        </p>
       </form>
     </div>
   );

@@ -61,7 +61,13 @@ export async function signupBetaUser(params: {
     });
 
     if (createError || !created?.user?.id) {
-      return { ok: false, error: createError?.message ?? 'Falha ao criar a conta. Verifique se o e-mail já não está em uso.' };
+      const alreadyRegistered = /already.*registered|already.*exists/i.test(createError?.message ?? '');
+      return {
+        ok: false,
+        error: alreadyRegistered
+          ? 'Este e-mail já tem uma conta. Se já é seu, é só entrar em vez de cadastrar de novo.'
+          : (createError?.message ?? 'Falha ao criar a conta.')
+      };
     }
 
     const userId = created.user.id;
