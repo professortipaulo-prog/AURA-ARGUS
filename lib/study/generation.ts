@@ -78,7 +78,7 @@ const WORD_SEARCH_DIRECTIONS = [
  * encontravel na grade final, e que a grade fica sempre totalmente
  * preenchida (sem celulas vazias).
  */
-export function buildWordSearchGrid(originalWords: string[], size = 15): WordSearchGame {
+export function buildWordSearchGrid(originalWords: string[], size = 20): WordSearchGame {
   const grid: (string | null)[][] = Array.from({ length: size }, () => Array(size).fill(null));
   const placed: { original: string; norm: string }[] = [];
 
@@ -133,7 +133,7 @@ export async function generateWordSearch(subject: string, persona: 'aura' | 'arg
   const result = await askForJson<{ words: string[] }>({ subject, instructions, persona });
   if (!result?.words?.length) return null;
 
-  const game = buildWordSearchGrid(result.words, 15);
+  const game = buildWordSearchGrid(result.words, 20);
   if (game.words.length === 0) return null;
   return game;
 }

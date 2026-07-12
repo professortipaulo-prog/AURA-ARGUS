@@ -29,7 +29,11 @@ export const anthropicProvider: AIProviderAdapter = {
     const response = await client.messages.create(
       {
         model,
-        max_tokens: 1500,
+        // Elevado de 1500 para 4096: o limite anterior cortava respostas
+        // longas no meio (ex: quiz de 10 perguntas para a Central de
+        // Estudos, documentos mais extensos), quebrando JSON estruturado
+        // e truncando texto. 4096 da margem confortavel sem custo excessivo.
+        max_tokens: 4096,
         ...(systemPrompt ? { system: systemPrompt } : {}),
         messages: [{ role: 'user', content: message }],
         // Busca na web nativa da Anthropic (executada pelo servidor da

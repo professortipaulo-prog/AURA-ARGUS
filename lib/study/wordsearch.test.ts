@@ -57,4 +57,13 @@ describe('buildWordSearchGrid', () => {
     expect(result.words.length).toBe(0);
     expect(result.grid.length).toBe(10);
   });
+
+  it('regressão: mesmo se a IA ignorar a instrução e devolver frases com espaço em vez de palavras únicas, a grade padrão (20x20) ainda consegue posicionar a maioria', () => {
+    const nonCompliantPhrases = [
+      'Inconfidência Mineira', 'Sistema Operacional', 'Coroa Portuguesa',
+      'Independência', 'Minas Gerais', 'Conspiração', 'Tiradentes', 'Ouro'
+    ];
+    const result = buildWordSearchGrid(nonCompliantPhrases);
+    expect(result.words.length).toBeGreaterThanOrEqual(6);
+  });
 });
