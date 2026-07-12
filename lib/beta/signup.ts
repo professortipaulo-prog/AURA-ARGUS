@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { DEFAULT_ORGANIZATION_ID, DEFAULT_ORGANIZATION_SLUG } from '@/lib/auth/constants';
+import { ADMIN_EMAIL } from '@/lib/auth/constants';
 
 export type BetaStatus = { remaining: number; total: number; open: boolean };
 
@@ -10,7 +11,15 @@ export async function getBetaStatus(): Promise<BetaStatus> {
   const total = config?.max_signups ?? 15;
   const open = config?.signup_open ?? true;
 
-  const { count } = await admin.schema('core').from('profiles').select('id', { count: 'exact', head: true }).eq('beta_cohort', true);
+  // O seu proprio e-mail (dono/admin) nunca conta como vaga do beta --
+  // assim voce pode testar o formulario quantas vezes quiser sem tirar
+  // acesso de nenhum dos 15 alunos reais.
+  const { count } = await admin
+    .schema('core')
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('beta_cohort', true)
+    .neq('email', ADMIN_EMAIL);
   const used = count ?? 0;
 
   return { remaining: Math.max(0, total - used), total, open };

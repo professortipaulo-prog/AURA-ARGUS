@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MatrixRain } from '@/components/matrix-rain';
 
 export default function BetaSignupPage() {
   const router = useRouter();
@@ -55,6 +56,9 @@ export default function BetaSignupPage() {
   if (success) {
     return (
       <div className="aios-beta-shell">
+        <div className="aios-beta-bg" aria-hidden="true">
+          <MatrixRain />
+        </div>
         <div className="aios-beta-card">
           <h1>🎉 Cadastro concluído!</h1>
           <p>Sua conta foi criada. Seu teste de 7 dias começa a contar a partir do seu primeiro acesso — então só entra quando estiver pronto(a) para começar a usar de verdade.</p>
@@ -67,6 +71,9 @@ export default function BetaSignupPage() {
   if (status && (!status.open || status.remaining <= 0)) {
     return (
       <div className="aios-beta-shell">
+        <div className="aios-beta-bg" aria-hidden="true">
+          <MatrixRain />
+        </div>
         <div className="aios-beta-card">
           <h1>Vagas encerradas</h1>
           <p>As vagas do teste beta do AURA &amp; ARGUS já foram todas preenchidas. Obrigado pelo interesse!</p>
@@ -77,6 +84,9 @@ export default function BetaSignupPage() {
 
   return (
     <div className="aios-beta-shell">
+      <div className="aios-beta-bg" aria-hidden="true">
+        <MatrixRain />
+      </div>
       <form className="aios-beta-card" onSubmit={handleSubmit}>
         <h1>Teste Beta — AURA &amp; ARGUS Estudantil</h1>
         <p className="aios-muted">

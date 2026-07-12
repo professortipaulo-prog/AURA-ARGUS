@@ -1901,8 +1901,9 @@ html[data-assistant-theme='aura'] .living-orb-b { background: rgba(236,72,153,.1
 .aios-mindmap-frame { width: 100%; height: 640px; border: 1px solid rgba(148,163,184,.18); border-radius: 16px; background: #0d0c16; }
 @media (max-width: 640px) { .aios-mindmap-frame { height: 480px; } }
 
-.aios-beta-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: radial-gradient(ellipse at 50% 20%, #1b1530 0%, #05070c 70%); }
-.aios-beta-card { width: 100%; max-width: 480px; background: rgba(10,17,34,.75); border: 1px solid rgba(148,163,184,.18); border-radius: 22px; padding: 32px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); }
+.aios-beta-shell { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; overflow: hidden; background: linear-gradient(135deg, #020713 0%, #061223 52%, #030816 100%); }
+.aios-beta-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: radial-gradient(circle at 72% 20%, rgba(34,211,238,.17), transparent 30rem), radial-gradient(circle at 28% 45%, rgba(168,85,247,.20), transparent 34rem); }
+.aios-beta-card { position: relative; z-index: 1; width: 100%; max-width: 480px; background: rgba(10,17,34,.75); border: 1px solid rgba(148,163,184,.18); border-radius: 22px; padding: 32px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); box-shadow: 0 30px 110px rgba(0,0,0,.34); }
 .aios-beta-card h1 { font-size: 22px; color: #f3f7ff; margin-bottom: 4px; }
 .aios-beta-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #cbd5e1; line-height: 1.5; cursor: pointer; }
 .aios-beta-toggle input { margin-top: 3px; flex-shrink: 0; }
