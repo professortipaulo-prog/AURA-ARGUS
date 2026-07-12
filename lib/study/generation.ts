@@ -138,6 +138,26 @@ export async function generateWordSearch(subject: string, persona: 'aura' | 'arg
   return game;
 }
 
+import type { MindMapData, MindMapNode } from './mindmap-engine';
+
+export async function generateMindMap(subject: string, persona: 'aura' | 'argus'): Promise<MindMapData | null> {
+  const instructions = `Crie um mapa mental sobre o assunto: "${subject}", em português do Brasil. Estruture em 4 a 7 ramos principais (os grandes temas dentro do assunto), cada um com 2 a 6 sub-itens, e alguns sub-itens podem ter mais um nível de detalhe abaixo (não exagere na profundidade, no máximo 3 níveis no total). Responda EXATAMENTE neste formato JSON: {"topic":"Nome do assunto","branches":[{"label":"Nome do ramo","children":[{"label":"Sub-item"},{"label":"Sub-item com mais detalhe","children":[{"label":"Detalhe"}]}]}]}. Textos curtos e diretos em cada nó (poucas palavras), não frases longas.`;
+  const result = await askForJson<MindMapData>({ subject, instructions, persona });
+  if (!result?.branches?.length) return null;
+
+  function sanitize(node: MindMapNode): MindMapNode {
+    return {
+      label: String(node.label || '').slice(0, 120),
+      children: Array.isArray(node.children) ? node.children.map(sanitize).slice(0, 8) : undefined
+    };
+  }
+
+  return {
+    topic: String(result.topic || subject).slice(0, 100),
+    branches: result.branches.map(sanitize).slice(0, 8)
+  };
+}
+
 export async function generateStudySummary(subject: string, persona: 'aura' | 'argus'): Promise<string> {
   const { user, identity } = await getCurrentUserIdentity();
   const knowledgeContext = user?.id ? await getKnowledgeContext(user.id, subject) : null;
