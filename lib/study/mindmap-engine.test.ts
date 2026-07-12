@@ -28,6 +28,6 @@ describe('buildMindMapHtml', () => {
     // Extrai o JSON passado para MindMap.render e confirma que continua válido
     const match = html.match(/MindMap\.render\("mm-mount", (.+?), \{/);
     expect(match).not.toBeNull();
-    expect(() => JSON.parse(match![1])).not.toThrow();
+    expect(() => JSON.parse(match?.[1] ?? '')).not.toThrow();
   });
 });

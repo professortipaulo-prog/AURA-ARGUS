@@ -85,6 +85,23 @@ export async function POST(request: Request) {
   const discValue = cleanString(body.discProfile);
   const preferencesText = cleanString(body.preferences);
 
+  // Busca o perfil atual antes de sobrescrever -- sem isso, o upsert
+  // abaixo apagaria preferencias ja salvas (ex: musica favorita,
+  // PATCH_120/124) a cada login, e tambem nunca conseguiria saber se
+  // este e o PRIMEIRO acesso real (para o relogio de 7 dias do beta).
+  const { data: existingProfile } = await core
+    .from('profiles')
+    .select('preferences, first_access_at')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const mergedPreferences = {
+    ...((existingProfile?.preferences as object) ?? {}),
+    onboarding_notes: preferencesText,
+    role_hint: role
+  };
+  const firstAccessAt = existingProfile?.first_access_at ?? new Date().toISOString();
+
   const { error: profileError } = await core
     .from('profiles')
     .upsert(
@@ -96,10 +113,8 @@ export async function POST(request: Request) {
         professional_title: cleanString(body.professionalTitle) ?? (isFounder ? 'Administrador AURA/ARGUS' : null),
         company: cleanString(body.company) ?? (isFounder ? 'AURA/ARGUS' : null),
         disc_profile: discValue ? { predominant: discValue } : {},
-        preferences: {
-          onboarding_notes: preferencesText,
-          role_hint: role
-        },
+        preferences: mergedPreferences,
+        first_access_at: firstAccessAt,
         status: 'active',
         last_seen_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
